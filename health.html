@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#050506">
 <meta name="color-scheme" content="dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Health">
 <title>Water Tracker</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="sync.js" defer></script>
@@ -80,15 +84,11 @@ main {
 .water-iframe {
   display: block;
   width: 100%;
-  height: 880px;
+  height: 880px; /* fallback until the resize script measures real content */
   border: 0;
   background: transparent;
   border-radius: 16px;
-  overflow: hidden;
   color-scheme: dark;
-}
-@media (max-width: 480px) {
-  .water-iframe { height: 780px; }
 }
 
 .attribution {
@@ -116,7 +116,7 @@ main {
 <main>
   <section id="water" class="water-embed">
     <div class="section-title">Water Tracker</div>
-    <iframe src="po-water.html" class="water-iframe" loading="lazy" title="Water Tracker"></iframe>
+    <iframe src="po-water.html" class="water-iframe" loading="lazy" title="Water Tracker" scrolling="no"></iframe>
   </section>
 
   <div class="attribution">// editable template · all data stays in your browser</div>
@@ -129,6 +129,35 @@ document.addEventListener('DOMContentLoaded', function () {
     appKey: 'health',
     syncedKeys: ['po_water_v1'],
     onApplied: function () { window.dispatchEvent(new Event('storage')); }
+  });
+});
+</script>
+<script>
+// The water tracker is embedded same-origin, so instead of letting the
+// iframe scroll internally (a separate scroll region stacked inside the
+// page — awkward on touch), measure its real content height and grow
+// the iframe to match. The outer page then does all the scrolling.
+document.addEventListener('DOMContentLoaded', function () {
+  const iframe = document.querySelector('.water-iframe');
+  if (!iframe) return;
+
+  function resize() {
+    try {
+      const doc = iframe.contentDocument;
+      if (!doc || !doc.documentElement) return;
+      const h = Math.max(doc.documentElement.scrollHeight, doc.body ? doc.body.scrollHeight : 0);
+      if (h) iframe.style.height = h + 'px';
+    } catch (e) {}
+  }
+
+  iframe.addEventListener('load', function () {
+    resize();
+    try {
+      const doc = iframe.contentDocument;
+      if (doc && window.ResizeObserver) {
+        new ResizeObserver(resize).observe(doc.documentElement);
+      }
+    } catch (e) {}
   });
 });
 </script>
