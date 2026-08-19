@@ -626,6 +626,50 @@ body::after {
 .todo-due.todo-due-overdue { background: rgba(255,107,107,0.14); color: var(--danger); }
 .todo-due.todo-due-none    { opacity: 0.6; font-style: italic; }
 
+.gm-row.todo-row { display: block; }
+.todo-row-main { display: flex; align-items: center; gap: 12px; }
+
+.todo-promote-btn {
+  flex-shrink: 0;
+  width: 24px; height: 24px;
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 7px;
+  background: rgba(255,255,255,0.04);
+  color: var(--text-secondary);
+  font-size: 15px; font-weight: 700; line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.todo-promote-btn:hover {
+  background: rgba(107,227,164,0.10);
+  border-color: rgba(107,227,164,0.35);
+  color: var(--success);
+}
+
+.todo-add-menu {
+  display: none;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(255,255,255,0.08);
+}
+.todo-add-menu.show { display: flex; }
+.todo-add-menu-btn {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 9px;
+  background: rgba(255,255,255,0.04);
+  color: var(--text-primary);
+  font-family: inherit; font-size: 12px; font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.todo-add-menu-btn:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.18);
+}
+
 .gm-add {
   padding: 11px 20px;
   border: 0; border-radius: 12px;
@@ -1899,10 +1943,25 @@ body::after {
     return MONTH_NAMES[d.getMonth()] + ' ' + d.getDate();
   }
 
+  function addTodoToGoals(todo, key) {
+    const list = getGoals(key);
+    list.push({ text: todo.text, done: false });
+    setGoals(key, list);
+    if (key === todayKey()) { loadToday(); updateCalTrigger(); }
+    if (key === tomorrowKey()) loadTomorrow();
+  }
+
+  function closeAllTodoMenus() {
+    document.querySelectorAll('.todo-add-menu.show').forEach(m => m.classList.remove('show'));
+  }
+
   function buildTodoRow(todo, idx) {
     const li = document.createElement('li');
-    li.className = 'gm-row';
+    li.className = 'gm-row todo-row';
     if (todo.done) li.classList.add('gm-row-done');
+
+    const main = document.createElement('div');
+    main.className = 'todo-row-main';
 
     const cb = document.createElement('input');
     cb.type = 'checkbox';
@@ -1915,12 +1974,12 @@ body::after {
       setTodos(list);
       renderTodos();
     });
-    li.appendChild(cb);
+    main.appendChild(cb);
 
     const text = document.createElement('span');
     text.className = 'gm-text';
     text.textContent = todo.text;
-    li.appendChild(text);
+    main.appendChild(text);
 
     const due = document.createElement('span');
     due.className = 'todo-due';
@@ -1933,7 +1992,24 @@ body::after {
       due.textContent = 'No due date';
       due.classList.add('todo-due-none');
     }
-    li.appendChild(due);
+    main.appendChild(due);
+
+    const menu = document.createElement('div');
+    menu.className = 'todo-add-menu';
+
+    const promoteBtn = document.createElement('button');
+    promoteBtn.type = 'button';
+    promoteBtn.className = 'todo-promote-btn';
+    promoteBtn.setAttribute('aria-label', 'Add to Today or Plan tomorrow');
+    promoteBtn.title = 'Add to Today or Plan tomorrow';
+    promoteBtn.textContent = '+';
+    promoteBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = menu.classList.contains('show');
+      closeAllTodoMenus();
+      if (!isOpen) menu.classList.add('show');
+    });
+    main.appendChild(promoteBtn);
 
     const del = document.createElement('button');
     del.type = 'button';
@@ -1946,7 +2022,33 @@ body::after {
       setTodos(list);
       renderTodos();
     });
-    li.appendChild(del);
+    main.appendChild(del);
+
+    li.appendChild(main);
+
+    const toTodayBtn = document.createElement('button');
+    toTodayBtn.type = 'button';
+    toTodayBtn.className = 'todo-add-menu-btn';
+    toTodayBtn.textContent = '→ Today';
+    toTodayBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      addTodoToGoals(todo, todayKey());
+      closeAllTodoMenus();
+    });
+    menu.appendChild(toTodayBtn);
+
+    const toTomorrowBtn = document.createElement('button');
+    toTomorrowBtn.type = 'button';
+    toTomorrowBtn.className = 'todo-add-menu-btn';
+    toTomorrowBtn.textContent = '→ Plan tomorrow';
+    toTomorrowBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      addTodoToGoals(todo, tomorrowKey());
+      closeAllTodoMenus();
+    });
+    menu.appendChild(toTomorrowBtn);
+
+    li.appendChild(menu);
 
     return li;
   }
@@ -1987,6 +2089,9 @@ body::after {
   document.getElementById('todoAddBtn').addEventListener('click', todoAdd);
   document.getElementById('todoInput').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') { e.preventDefault(); todoAdd(); }
+  });
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.todo-row')) closeAllTodoMenus();
   });
 
   // ---------- Boot ----------
