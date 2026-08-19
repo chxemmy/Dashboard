@@ -1680,7 +1680,13 @@ body::after {
     const tomorrow = getGoals(tomorrowKey());
     const seen = new Set(tomorrow.map(g => g.text));
     remaining.forEach(g => {
-      if (!seen.has(g.text)) { tomorrow.push({ text: g.text, done: false }); seen.add(g.text); }
+      if (!seen.has(g.text)) {
+        const copy = { text: g.text, done: false };
+        if (g.priority) copy.priority = g.priority;
+        if (g.fromTodoId) copy.fromTodoId = g.fromTodoId;
+        tomorrow.push(copy);
+        seen.add(g.text);
+      }
     });
     setGoals(tomorrowKey(), tomorrow);
     setGoals(todayKey(), today.filter(g => g.done));
