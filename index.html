@@ -548,6 +548,54 @@ body::after {
 .gm-input::placeholder { color: var(--text-tertiary); }
 .gm-input:focus { border-color: rgba(255,255,255,0.28); background: rgba(0,0,0,0.36); }
 
+.gm-priority-wrap { position: relative; flex-shrink: 0; }
+.gm-priority-select {
+  appearance: none; -webkit-appearance: none;
+  padding: 11px 30px 11px 14px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  background: rgba(0,0,0,0.28);
+  color: var(--text-primary);
+  font-family: inherit; font-size: 13px; font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s, background 0.2s, color 0.2s;
+}
+.gm-priority-wrap::after {
+  content: '▾';
+  position: absolute; right: 12px; top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  font-size: 10px;
+  color: inherit;
+}
+.gm-priority-select[data-priority="low"] {
+  color: var(--success);
+  border-color: rgba(107,227,164,0.35);
+  background: rgba(107,227,164,0.08);
+}
+.gm-priority-select[data-priority="medium"] {
+  color: var(--warning);
+  border-color: rgba(242,192,99,0.35);
+  background: rgba(242,192,99,0.08);
+}
+.gm-priority-select[data-priority="high"] {
+  color: var(--danger);
+  border-color: rgba(255,107,107,0.35);
+  background: rgba(255,107,107,0.08);
+}
+.gm-priority-wrap:has(select[data-priority="low"])::after    { color: var(--success); }
+.gm-priority-wrap:has(select[data-priority="medium"])::after { color: var(--warning); }
+.gm-priority-wrap:has(select[data-priority="high"])::after   { color: var(--danger); }
+
+.gm-priority-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  flex-shrink: 0;
+}
+.gm-priority-dot[data-priority="low"]    { background: var(--success); }
+.gm-priority-dot[data-priority="medium"] { background: var(--warning); }
+.gm-priority-dot[data-priority="high"]   { background: var(--danger); }
+
 .gm-add {
   padding: 11px 20px;
   border: 0; border-radius: 12px;
@@ -912,7 +960,14 @@ body::after {
       <div id="emptyState" class="empty-state">No goals for today yet — add one below.</div>
       <button type="button" id="gmPushBtn" class="gm-push-btn" style="display:none;">Push remaining to tomorrow</button>
       <div class="goal-input-wrap gm-input-wrap">
-        <input id="goalInput" class="gm-input" type="text" placeholder="Add a goal for today…" autocomplete="off">
+        <input id="goalInput" class="gm-input" type="text" placeholder="Add a task…" autocomplete="off">
+        <div class="gm-priority-wrap">
+          <select id="goalPriority" class="gm-priority-select" data-priority="medium">
+            <option value="low">Low</option>
+            <option value="medium" selected>Medium</option>
+            <option value="high">High</option>
+          </select>
+        </div>
         <button type="button" id="goalAddBtn"    class="gm-add">+ Add</button>
         <button type="button" id="goalPolishBtn" class="gm-polish">✨ Polish</button>
         <div class="gm-status" id="polishStatus"></div>
@@ -931,7 +986,14 @@ body::after {
       <ul id="tomorrowList" class="goal-list gm-list"></ul>
       <div id="tomorrowEmpty" class="empty-state">Nothing planned for tomorrow yet</div>
       <div class="goal-input-wrap gm-input-wrap">
-        <input id="tomorrowInput" class="gm-input" type="text" placeholder="Add a goal for tomorrow…" autocomplete="off">
+        <input id="tomorrowInput" class="gm-input" type="text" placeholder="Add a task…" autocomplete="off">
+        <div class="gm-priority-wrap">
+          <select id="tomorrowPriority" class="gm-priority-select" data-priority="medium">
+            <option value="low">Low</option>
+            <option value="medium" selected>Medium</option>
+            <option value="high">High</option>
+          </select>
+        </div>
         <button type="button" id="tomorrowAddBtn"    class="gm-add">+ Add</button>
         <button type="button" id="tomorrowPolishBtn" class="gm-polish">✨ Polish</button>
         <div class="gm-status" id="tomorrowStatus"></div>
@@ -1367,6 +1429,14 @@ body::after {
     });
     li.appendChild(cb);
 
+    if (goal.priority) {
+      const dot = document.createElement('span');
+      dot.className = 'gm-priority-dot';
+      dot.dataset.priority = goal.priority;
+      dot.title = goal.priority + ' priority';
+      li.appendChild(dot);
+    }
+
     const text = document.createElement('span');
     text.className = 'gm-text';
     text.textContent = goal.text;
@@ -1545,10 +1615,17 @@ body::after {
     return arr[0].trim();
   }
 
-  function makeAddHandlers(input, addBtn, polishBtn, key, statusEl, reload) {
+  function makeAddHandlers(input, addBtn, polishBtn, key, statusEl, reload, prioritySelect) {
+    if (prioritySelect) {
+      prioritySelect.addEventListener('change', () => {
+        prioritySelect.dataset.priority = prioritySelect.value;
+      });
+    }
     function plainAdd(text) {
       const list = getGoals(key);
-      list.push({ text, done: false });
+      const goal = { text, done: false };
+      if (prioritySelect) goal.priority = prioritySelect.value;
+      list.push(goal);
       setGoals(key, list);
       input.value = '';
       reload();
@@ -1588,7 +1665,8 @@ body::after {
     document.getElementById('goalPolishBtn'),
     todayKey(),
     document.getElementById('polishStatus'),
-    loadToday
+    loadToday,
+    document.getElementById('goalPriority')
   );
   makeAddHandlers(
     document.getElementById('tomorrowInput'),
@@ -1596,7 +1674,8 @@ body::after {
     document.getElementById('tomorrowPolishBtn'),
     tomorrowKey(),
     document.getElementById('tomorrowStatus'),
-    loadTomorrow
+    loadTomorrow,
+    document.getElementById('tomorrowPriority')
   );
 
   // ---------- Calendar (trigger + month/day modal) ----------
@@ -1698,6 +1777,14 @@ body::after {
       if (key === todayKey()) { loadToday(); updateCalTrigger(); }
     });
     li.appendChild(cb);
+
+    if (goal.priority) {
+      const dot = document.createElement('span');
+      dot.className = 'gm-priority-dot';
+      dot.dataset.priority = goal.priority;
+      dot.title = goal.priority + ' priority';
+      li.appendChild(dot);
+    }
 
     const text = document.createElement('span');
     text.className = 'cal-day-text';
