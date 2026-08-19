@@ -597,6 +597,35 @@ body::after {
 .gm-priority-dot[data-priority="medium"] { background: var(--warning); }
 .gm-priority-dot[data-priority="high"]   { background: var(--danger); }
 
+.gm-date-input {
+  flex-shrink: 0;
+  padding: 11px 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  background: rgba(0,0,0,0.28);
+  color: var(--text-primary);
+  font-family: inherit; font-size: 16px;
+  outline: none;
+  color-scheme: dark;
+  transition: border-color 0.2s, background 0.2s;
+}
+.gm-date-input:focus { border-color: rgba(255,255,255,0.28); background: rgba(0,0,0,0.36); }
+
+.todo-due {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.05);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+.todo-due.todo-due-today   { background: rgba(242,192,99,0.14); color: var(--warning); }
+.todo-due.todo-due-overdue { background: rgba(255,107,107,0.14); color: var(--danger); }
+.todo-due.todo-due-none    { opacity: 0.6; font-style: italic; }
+
 .gm-add {
   padding: 11px 20px;
   border: 0; border-radius: 12px;
@@ -986,6 +1015,29 @@ body::after {
       </div>
       <div class="cal-trigger-chevron">›</div>
     </button>
+  </div>
+
+  <div class="section">
+    <div class="section-title">To-Do List</div>
+    <div class="gm-card" id="todoCard">
+      <div class="gm-header">
+        <div class="gm-header-left">
+          <div class="gm-eyebrow">General tasks</div>
+          <div class="gm-progress-row">
+            <span class="gm-progress-num"   id="todoProgressNum">0</span>
+            <span class="gm-progress-total" id="todoProgressTotal">/ 0</span>
+            <span class="gm-progress-label" id="todoProgressLabel">no tasks yet</span>
+          </div>
+        </div>
+      </div>
+      <ul id="todoList" class="goal-list gm-list"></ul>
+      <div id="todoEmpty" class="empty-state">No tasks yet — add one below.</div>
+      <div class="goal-input-wrap gm-input-wrap">
+        <input id="todoInput" class="gm-input" type="text" placeholder="Add a task…" autocomplete="off">
+        <input id="todoDueDate" class="gm-date-input" type="date" aria-label="Due date">
+        <button type="button" id="todoAddBtn" class="gm-add">+ Add</button>
+      </div>
+    </div>
   </div>
 
 </div>
@@ -1829,6 +1881,114 @@ body::after {
     renderCalMonth();
   });
 
+  // ---------- General To-Do List (flat tasks with an optional due date) ----------
+  function getTodos() {
+    const t = storeGet('todos_v1');
+    const list = Array.isArray(t) ? t : [];
+    return list.slice().sort((a, b) => {
+      const da = (a && a.dueDate) ? a.dueDate : '9999-99-99';
+      const db = (b && b.dueDate) ? b.dueDate : '9999-99-99';
+      return da < db ? -1 : da > db ? 1 : 0;
+    });
+  }
+  function setTodos(list) { storeSet('todos_v1', list); }
+
+  function formatDueDate(dueDate) {
+    const parts = dueDate.split('-').map(Number);
+    const d = new Date(parts[0], parts[1] - 1, parts[2]);
+    return MONTH_NAMES[d.getMonth()] + ' ' + d.getDate();
+  }
+
+  function buildTodoRow(todo, idx) {
+    const li = document.createElement('li');
+    li.className = 'gm-row';
+    if (todo.done) li.classList.add('gm-row-done');
+
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.className = 'gm-check';
+    cb.checked = !!todo.done;
+    cb.addEventListener('change', () => {
+      const list = getTodos();
+      if (!list[idx]) return;
+      list[idx].done = cb.checked;
+      setTodos(list);
+      renderTodos();
+    });
+    li.appendChild(cb);
+
+    const text = document.createElement('span');
+    text.className = 'gm-text';
+    text.textContent = todo.text;
+    li.appendChild(text);
+
+    const due = document.createElement('span');
+    due.className = 'todo-due';
+    const activeStr = getActiveDateString();
+    if (todo.dueDate) {
+      due.textContent = formatDueDate(todo.dueDate);
+      if (!todo.done && todo.dueDate < activeStr) due.classList.add('todo-due-overdue');
+      else if (todo.dueDate === activeStr) due.classList.add('todo-due-today');
+    } else {
+      due.textContent = 'No due date';
+      due.classList.add('todo-due-none');
+    }
+    li.appendChild(due);
+
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'goal-delete';
+    del.setAttribute('aria-label', 'Delete task');
+    del.textContent = '×';
+    del.addEventListener('click', () => {
+      const list = getTodos();
+      list.splice(idx, 1);
+      setTodos(list);
+      renderTodos();
+    });
+    li.appendChild(del);
+
+    return li;
+  }
+
+  function renderTodos() {
+    const list = getTodos();
+    const total = list.length;
+    const done = list.filter(t => t.done).length;
+    document.getElementById('todoProgressNum').textContent = done;
+    document.getElementById('todoProgressTotal').textContent = '/ ' + total;
+    document.getElementById('todoProgressLabel').textContent =
+      total === 0 ? 'no tasks yet' : (done === total ? 'all done' : 'to do');
+
+    const listEl = document.getElementById('todoList');
+    const emptyEl = document.getElementById('todoEmpty');
+    listEl.innerHTML = '';
+    emptyEl.style.display = list.length === 0 ? 'block' : 'none';
+    list.forEach((t, idx) => listEl.appendChild(buildTodoRow(t, idx)));
+  }
+
+  function todoAdd() {
+    const input = document.getElementById('todoInput');
+    const dateInput = document.getElementById('todoDueDate');
+    const text = input.value.trim();
+    if (!text) return;
+    const list = getTodos();
+    list.push({
+      id: 'td' + Date.now() + '_' + Math.floor(Math.random() * 999),
+      text,
+      dueDate: dateInput.value || null,
+      done: false
+    });
+    setTodos(list);
+    input.value = '';
+    dateInput.value = '';
+    renderTodos();
+  }
+  document.getElementById('todoAddBtn').addEventListener('click', todoAdd);
+  document.getElementById('todoInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); todoAdd(); }
+  });
+
   // ---------- Boot ----------
   rollover();
   processStreak();
@@ -1836,13 +1996,14 @@ body::after {
   loadTomorrow();
   renderStreak();
   updateCalTrigger();
+  renderTodos();
   updateDayRing();
   setInterval(updateDayRing, 60 * 1000);
   startTicker();
 
   // Re-render when storage changes from another tab (or our bridged parent).
   window.addEventListener('storage', () => {
-    loadToday(); loadTomorrow(); renderStreak(); updateCalTrigger();
+    loadToday(); loadTomorrow(); renderStreak(); updateCalTrigger(); renderTodos();
     if (calModalBg.classList.contains('show')) {
       if (calSelectedDateStr) renderCalDay(); else renderCalMonth();
     }
@@ -1854,6 +2015,7 @@ document.addEventListener('DOMContentLoaded', function () {
   if (typeof initCloudSync !== 'function') return;
   initCloudSync({
     appKey: 'goals',
+    syncedKeys: ['todos_v1'],
     syncedPrefixes: ['goals:'],
     onApplied: function () {
       window.dispatchEvent(new CustomEvent('goals-changed'));
