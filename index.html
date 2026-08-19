@@ -597,6 +597,20 @@ body::after {
 .gm-priority-dot[data-priority="medium"] { background: var(--warning); }
 .gm-priority-dot[data-priority="high"]   { background: var(--danger); }
 
+.gm-promoted-badge {
+  flex-shrink: 0;
+  display: inline-flex; align-items: center;
+  font-family: var(--font-mono);
+  font-size: 9.5px; font-weight: 700;
+  letter-spacing: 0.05em; text-transform: uppercase;
+  color: #7DD3FC;
+  background: rgba(125, 211, 252, 0.12);
+  border: 1px solid rgba(125, 211, 252, 0.28);
+  padding: 3px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
 .gm-date-input {
   flex-shrink: 0;
   padding: 11px 12px;
@@ -1528,6 +1542,14 @@ body::after {
     li.appendChild(text);
     makeInlineEdit(text, null, idx, key, reload);
 
+    if (goal.fromTodoId) {
+      const badge = document.createElement('span');
+      badge.className = 'gm-promoted-badge';
+      badge.title = 'Added from the general to-do list';
+      badge.textContent = '↳ To-Do';
+      li.appendChild(badge);
+    }
+
     const queueBtn = document.createElement('button');
     queueBtn.type = 'button';
     queueBtn.className = 'gm-queue-btn' + (goal.queued ? ' gm-queue-active' : '');
@@ -1818,6 +1840,14 @@ body::after {
     text.className = 'cal-day-text';
     text.textContent = goal.text;
     li.appendChild(text);
+
+    if (goal.fromTodoId) {
+      const badge = document.createElement('span');
+      badge.className = 'gm-promoted-badge';
+      badge.title = 'Added from the general to-do list';
+      badge.textContent = '↳ To-Do';
+      li.appendChild(badge);
+    }
 
     if (mode !== 'past') {
       const del = document.createElement('button');
