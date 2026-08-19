@@ -1204,12 +1204,18 @@ body::after {
     let today = getGoals(todayK);
     const texts = new Set(today.map(g => g.text));
 
+    // Goals promoted from the general to-do list that were completed
+    // on a day that's now over — pruned from that list below, once
+    // the day is actually done rather than the moment they're checked.
+    const completedTodoIds = [];
+
     storeListKeys('goals:').forEach(k => {
       const dateStr = k.slice('goals:'.length);
       if (dateStr >= todayDateStr) return;
       const old = getGoals(k);
       let changed = false;
       old.forEach(g => {
+        if (g.done && g.fromTodoId) completedTodoIds.push(g.fromTodoId);
         if (!g.done && g.text && !g.pushedForward && !texts.has(g.text)) {
           today.push({ text: g.text, done: false });
           texts.add(g.text);
@@ -1220,6 +1226,13 @@ body::after {
       if (changed) setGoals(k, old);
     });
     setGoals(todayK, today);
+
+    if (completedTodoIds.length) {
+      const idSet = new Set(completedTodoIds);
+      const todos = getTodos();
+      const nextTodos = todos.filter(t => !idSet.has(t.id));
+      if (nextTodos.length !== todos.length) setTodos(nextTodos);
+    }
   }
 
   // ---------- streak ----------
@@ -1497,7 +1510,6 @@ body::after {
       if (cb.checked) list[idx].doneAt = Date.now();
       else delete list[idx].doneAt;
       setGoals(key, list);
-      if (cb.checked) removeTodoIfCompleted(list[idx]);
       reload();
     });
     li.appendChild(cb);
@@ -1789,7 +1801,6 @@ body::after {
       if (cb.checked) list[idx].doneAt = Date.now();
       else delete list[idx].doneAt;
       setGoals(key, list);
-      if (cb.checked) removeTodoIfCompleted(list[idx]);
       reload();
       if (key === todayKey()) { loadToday(); updateCalTrigger(); }
     });
@@ -1953,17 +1964,6 @@ body::after {
     if (key === tomorrowKey()) loadTomorrow();
   }
 
-  // When a goal that was promoted from the general to-do list gets
-  // checked off, remove the original task from that list too.
-  function removeTodoIfCompleted(goal) {
-    if (!goal || !goal.fromTodoId) return;
-    const list = getTodos();
-    const next = list.filter(t => t.id !== goal.fromTodoId);
-    if (next.length !== list.length) {
-      setTodos(next);
-      renderTodos();
-    }
-  }
 
   function closeAllTodoMenus() {
     document.querySelectorAll('.todo-add-menu.show').forEach(m => m.classList.remove('show'));
