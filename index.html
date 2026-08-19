@@ -741,11 +741,26 @@ body::after {
 .cal-day-cell.cal-day-has-open .cal-day-dot { background: var(--warning); }
 
 .cal-day-header {
-  display: flex; align-items: baseline; justify-content: space-between;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px;
   margin-bottom: 12px;
 }
+.cal-day-header-mid { flex: 1; min-width: 0; text-align: center; }
+.cal-day-nav-btn {
+  flex-shrink: 0;
+  width: 32px; height: 32px;
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 9px;
+  background: rgba(255,255,255,0.04);
+  color: var(--text-primary);
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.cal-day-nav-btn:hover { background: rgba(255,255,255,0.08); }
 .cal-day-date { font-size: 16px; font-weight: 700; color: var(--text-primary); }
 .cal-day-count {
+  margin-top: 2px;
   font-family: var(--font-mono); font-size: 12px;
   color: var(--text-tertiary); font-variant-numeric: tabular-nums;
 }
@@ -962,8 +977,12 @@ body::after {
 
     <div class="cal-day-view" id="calDayView" style="display:none;">
       <div class="cal-day-header">
-        <div class="cal-day-date" id="calDayDate">—</div>
-        <div class="cal-day-count" id="calDayCount">0/0</div>
+        <button type="button" class="cal-day-nav-btn" id="calDayPrevBtn" aria-label="Previous day">‹</button>
+        <div class="cal-day-header-mid">
+          <div class="cal-day-date" id="calDayDate">—</div>
+          <div class="cal-day-count" id="calDayCount">0/0</div>
+        </div>
+        <button type="button" class="cal-day-nav-btn" id="calDayNextBtn" aria-label="Next day">›</button>
       </div>
       <ul class="cal-day-list" id="calDayList"></ul>
       <div class="cal-day-empty" id="calDayEmpty" style="display:none;">No goals for this day</div>
@@ -1599,6 +1618,8 @@ body::after {
   const calDayInput  = document.getElementById('calDayInput');
   const calDayAddBtn = document.getElementById('calDayAddBtn');
   const calDayReadonlyNote = document.getElementById('calDayReadonlyNote');
+  const calDayPrevBtn = document.getElementById('calDayPrevBtn');
+  const calDayNextBtn = document.getElementById('calDayNextBtn');
 
   let calViewMonth = null;   // Date — first of the month currently shown
   let calSelectedDateStr = null;
@@ -1762,6 +1783,17 @@ body::after {
     renderCalDay();
   }
 
+  function shiftCalDay(delta) {
+    const parts = calSelectedDateStr.split('-').map(Number);
+    const d = new Date(parts[0], parts[1] - 1, parts[2]);
+    d.setDate(d.getDate() + delta);
+    const dateStr = dateToKey(d);
+    if (d.getMonth() !== calViewMonth.getMonth() || d.getFullYear() !== calViewMonth.getFullYear()) {
+      calViewMonth = new Date(d.getFullYear(), d.getMonth(), 1);
+    }
+    showDayView(dateStr);
+  }
+
   function openCalendar(initialDateStr) {
     calViewMonth = initialDateStr
       ? new Date(Number(initialDateStr.slice(0,4)), Number(initialDateStr.slice(5,7)) - 1, 1)
@@ -1780,6 +1812,8 @@ body::after {
   document.getElementById('calCloseBtn').addEventListener('click', closeCalendar);
   calModalBg.addEventListener('click', (e) => { if (e.target === calModalBg) closeCalendar(); });
   calBackBtn.addEventListener('click', showMonthView);
+  calDayPrevBtn.addEventListener('click', () => shiftCalDay(-1));
+  calDayNextBtn.addEventListener('click', () => shiftCalDay(1));
   document.getElementById('calPrevBtn').addEventListener('click', () => {
     calViewMonth = new Date(calViewMonth.getFullYear(), calViewMonth.getMonth() - 1, 1);
     renderCalMonth();
