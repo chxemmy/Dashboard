@@ -2124,14 +2124,20 @@ body::after {
     const dateInput = document.getElementById('todoDueDate');
     const text = input.value.trim();
     if (!text) return;
-    const list = getTodos();
-    list.push({
+    const dueDate = dateInput.value || null;
+    const todo = {
       id: 'td' + Date.now() + '_' + Math.floor(Math.random() * 999),
       text,
-      dueDate: dateInput.value || null,
+      dueDate,
       done: false
-    });
+    };
+    const list = getTodos();
+    list.push(todo);
     setTodos(list);
+
+    // A due date means this task belongs on that day in the calendar too.
+    if (dueDate) addTodoToGoals(todo, 'goals:' + dueDate);
+
     input.value = '';
     dateInput.value = '';
     renderTodos();
