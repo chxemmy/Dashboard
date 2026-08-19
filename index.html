@@ -2150,6 +2150,31 @@ body::after {
     if (!e.target.closest('.todo-row')) closeAllTodoMenus();
   });
 
+  // ---------- Day-change watchdog ----------
+  // A tab left open across the 6 AM goal rollover (or midnight) never
+  // re-reads getActiveDateString() on its own — the "Today" label, the
+  // goal lists, and the calendar trigger would keep showing yesterday
+  // until the page is manually reloaded. Poll for the date actually
+  // changing and refresh everything when it does.
+  let lastActiveDateStr = getActiveDateString();
+  function checkForDayChange() {
+    const current = getActiveDateString();
+    if (current === lastActiveDateStr) return;
+    lastActiveDateStr = current;
+    rollover();
+    processStreak();
+    loadToday();
+    loadTomorrow();
+    renderStreak();
+    updateCalTrigger();
+    renderTodos();
+    cycleIdx = 0;
+    tick();
+    if (calModalBg.classList.contains('show')) {
+      if (calSelectedDateStr) renderCalDay(); else renderCalMonth();
+    }
+  }
+
   // ---------- Boot ----------
   rollover();
   processStreak();
@@ -2159,7 +2184,7 @@ body::after {
   updateCalTrigger();
   renderTodos();
   updateDayRing();
-  setInterval(updateDayRing, 60 * 1000);
+  setInterval(() => { updateDayRing(); checkForDayChange(); }, 60 * 1000);
   startTicker();
 
   // Re-render when storage changes from another tab (or our bridged parent).
@@ -2168,6 +2193,13 @@ body::after {
     if (calModalBg.classList.contains('show')) {
       if (calSelectedDateStr) renderCalDay(); else renderCalMonth();
     }
+  });
+
+  // Catch the date change immediately when the tab regains focus too,
+  // rather than waiting up to a minute for the next poll.
+  window.addEventListener('focus', checkForDayChange);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) checkForDayChange();
   });
 })();
 </script>
