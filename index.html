@@ -594,123 +594,237 @@ body::after {
   .gm-progress-num { font-size: 36px; }
 }
 
-/* ===== Component 5: Weekly Calendar ===== */
-.week-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 10px;
-}
-.week-day-card {
+/* ===== Component 5: Calendar trigger + modal ===== */
+.cal-trigger {
+  width: 100%;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  border: 0; border-radius: 16px;
   background: rgba(255, 255, 255, 0.04);
-  border-radius: 14px;
-  padding: 14px;
-  backdrop-filter: blur(20px) saturate(1.2);
-  -webkit-backdrop-filter: blur(20px) saturate(1.2);
-  box-shadow: 0 8px 28px rgba(0,0,0,0.35);
-  display: flex; flex-direction: column;
-  min-height: 170px;
+  backdrop-filter: blur(24px) saturate(1.2);
+  -webkit-backdrop-filter: blur(24px) saturate(1.2);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: background 0.15s;
 }
-.week-day-card.week-day-today {
-  background: rgba(107,227,164,0.06);
-  box-shadow: 0 8px 28px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(107,227,164,0.25);
+.cal-trigger:hover { background: rgba(255, 255, 255, 0.07); }
+.cal-trigger-left { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.cal-trigger-icon { font-size: 24px; flex-shrink: 0; }
+.cal-trigger-text { min-width: 0; }
+.cal-trigger-date {
+  font-size: 15px; font-weight: 700;
+  color: var(--text-primary);
 }
-.week-day-card.week-day-past { opacity: 0.55; }
-.week-day-head {
-  display: flex; align-items: flex-start; justify-content: space-between;
-  margin-bottom: 10px; gap: 6px;
-}
-.week-day-name {
-  font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+.cal-trigger-sub {
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
   color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
 }
-.week-day-card.week-day-today .week-day-name { color: var(--success); }
-.week-day-num {
-  font-family: var(--font-mono); font-size: 10.5px;
-  color: var(--text-tertiary); margin-top: 2px;
-}
-.week-day-count {
-  font-family: var(--font-mono); font-size: 10.5px;
-  color: var(--text-tertiary); font-variant-numeric: tabular-nums;
+.cal-trigger-chevron {
+  font-size: 22px;
+  color: var(--text-tertiary);
   flex-shrink: 0;
 }
 
-.week-list { list-style: none; margin: 0 0 8px; padding: 0; flex: 1; }
-.week-row {
-  display: flex; align-items: center; gap: 7px;
-  padding: 6px 2px;
+/* Modal shell */
+.modal-bg {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(6px);
+  z-index: 100;
+  align-items: center; justify-content: center;
+  padding: 20px;
+}
+.modal-bg.show { display: flex; }
+.modal {
+  width: 100%; max-width: 560px;
+  max-height: 88vh;
+  background: #0F0F11;
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 18px;
+  padding: 20px;
+  overflow-y: auto;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+}
+
+.cal-modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.cal-back {
+  border: 0; background: transparent;
+  color: var(--text-secondary);
+  font-family: inherit; font-size: 13px; font-weight: 600;
+  cursor: pointer;
+  padding: 4px 6px;
+}
+.cal-back:hover { color: var(--text-primary); }
+.cal-modal-title {
+  flex: 1;
+  font-size: 15px; font-weight: 700;
+  color: var(--text-primary);
+  text-align: center;
+}
+.cal-close {
+  border: 0; background: transparent;
+  color: var(--text-tertiary);
+  font-size: 22px; line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+  transition: color 0.15s;
+}
+.cal-close:hover { color: var(--text-primary); }
+
+.cal-month-nav {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px;
+}
+.cal-nav-btn {
+  width: 32px; height: 32px;
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 9px;
+  background: rgba(255,255,255,0.04);
+  color: var(--text-primary);
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.cal-nav-btn:hover { background: rgba(255,255,255,0.08); }
+.cal-month-label {
+  font-size: 14px; font-weight: 700;
+  color: var(--text-primary);
+}
+.cal-weekday-row {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 6px;
+}
+.cal-weekday-row span {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+}
+.cal-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+.cal-day-cell {
+  aspect-ratio: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 3px;
+  border: 0; border-radius: 10px;
+  background: rgba(255,255,255,0.03);
+  color: var(--text-secondary);
+  font-family: inherit; font-size: 12.5px; font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.cal-day-cell:hover { background: rgba(255,255,255,0.08); }
+.cal-day-cell.cal-day-outside { color: var(--text-tertiary); opacity: 0.35; }
+.cal-day-cell.cal-day-today {
+  background: rgba(107,227,164,0.12);
+  color: var(--success);
+  box-shadow: inset 0 0 0 1px rgba(107,227,164,0.4);
+}
+.cal-day-dot {
+  width: 4px; height: 4px; border-radius: 50%;
+  background: var(--text-tertiary);
+}
+.cal-day-cell.cal-day-all-done .cal-day-dot { background: var(--success); }
+.cal-day-cell.cal-day-has-open .cal-day-dot { background: var(--warning); }
+
+.cal-day-header {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-bottom: 12px;
+}
+.cal-day-date { font-size: 16px; font-weight: 700; color: var(--text-primary); }
+.cal-day-count {
+  font-family: var(--font-mono); font-size: 12px;
+  color: var(--text-tertiary); font-variant-numeric: tabular-nums;
+}
+.cal-day-list { list-style: none; margin: 0 0 12px; padding: 0; }
+.cal-day-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 4px;
   border-bottom: 1px solid rgba(255,255,255,0.05);
 }
-.week-row:last-child { border-bottom: none; }
-.week-check {
+.cal-day-row:last-child { border-bottom: none; }
+.cal-day-check {
   appearance: none; -webkit-appearance: none;
-  width: 16px; height: 16px; flex-shrink: 0;
+  width: 20px; height: 20px; flex-shrink: 0;
   border: 1.5px solid rgba(255,255,255,0.18);
   background: rgba(0,0,0,0.28);
-  border-radius: 5px;
+  border-radius: 6px;
   cursor: pointer;
   position: relative;
 }
-.week-check:checked { background: var(--success); border-color: var(--success); }
-.week-check:checked::after {
+.cal-day-check:checked { background: var(--success); border-color: var(--success); }
+.cal-day-check:checked::after {
   content: '';
-  position: absolute; left: 4px; top: 1px;
-  width: 4px; height: 8px;
+  position: absolute; left: 5px; top: 1px;
+  width: 5px; height: 10px;
   border: solid #0A0A0B; border-width: 0 2px 2px 0;
   transform: rotate(45deg);
 }
-.week-text {
-  flex: 1; font-size: 12px; color: var(--text-primary);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+.cal-day-check:disabled { cursor: not-allowed; opacity: 0.55; }
+.cal-day-text {
+  flex: 1; font-size: 13.5px; color: var(--text-primary);
 }
-.week-row.week-row-done .week-text { text-decoration: line-through; color: var(--text-tertiary); }
-.week-del {
+.cal-day-row.cal-day-row-done .cal-day-text {
+  text-decoration: line-through; color: var(--text-tertiary);
+}
+.cal-day-del {
   border: 0; background: transparent; color: var(--text-tertiary);
-  font-size: 14px; line-height: 1; cursor: pointer; opacity: 0.5; padding: 0 2px;
+  font-size: 17px; line-height: 1; cursor: pointer; opacity: 0.5; padding: 0 4px;
   transition: opacity 0.2s, color 0.2s;
 }
-.week-row:hover .week-del { opacity: 1; }
-.week-del:hover { color: var(--danger); }
-.week-empty {
-  font-size: 11px; font-style: italic; color: var(--text-tertiary); padding: 6px 2px;
+.cal-day-del:hover { color: var(--danger); opacity: 1; }
+.cal-day-empty {
+  text-align: center; font-size: 12px; font-style: italic;
+  color: var(--text-tertiary); padding: 14px 0;
 }
-
-.week-add-row { display: flex; gap: 6px; margin-top: auto; }
-.week-add-input {
+.cal-day-add-row { display: flex; gap: 8px; }
+.cal-day-input {
   flex: 1; min-width: 0;
-  padding: 7px 9px;
+  padding: 10px 12px;
   border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 8px;
+  border-radius: 10px;
   background: rgba(0,0,0,0.28);
   color: var(--text-primary);
-  font-family: inherit; font-size: 12px;
+  font-family: inherit; font-size: 13px;
   outline: none;
   transition: border-color 0.2s, background 0.2s;
 }
-.week-add-input::placeholder { color: var(--text-tertiary); }
-.week-add-input:focus { border-color: rgba(255,255,255,0.28); background: rgba(0,0,0,0.36); }
-.week-add-btn {
-  flex-shrink: 0;
-  width: 28px; height: 28px;
-  border: 0; border-radius: 8px;
+.cal-day-input::placeholder { color: var(--text-tertiary); }
+.cal-day-input:focus { border-color: rgba(255,255,255,0.28); background: rgba(0,0,0,0.36); }
+.cal-day-add-btn {
+  padding: 10px 16px;
+  border: 0; border-radius: 10px;
   background: linear-gradient(180deg, #FFFFFF 0%, #E8E5DD 100%);
-  color: #0A0A0B; font-weight: 700; font-size: 14px;
+  color: #0A0A0B; font-family: inherit; font-size: 12.5px; font-weight: 700;
   cursor: pointer;
   transition: filter 0.15s;
 }
-.week-add-btn:hover { filter: brightness(1.06); }
-
-@media (max-width: 720px) {
-  .week-grid {
-    display: flex; gap: 10px;
-    overflow-x: auto;
-    padding-bottom: 6px;
-    scroll-snap-type: x proximity;
-  }
-  .week-day-card { flex: 0 0 160px; scroll-snap-align: start; }
+.cal-day-add-btn:hover { filter: brightness(1.06); }
+.cal-day-readonly-note {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 10.5px; font-weight: 700;
+  letter-spacing: 0.10em; text-transform: uppercase;
+  color: var(--text-tertiary);
+  padding-top: 4px;
 }
+
 @media (max-width: 480px) {
-  .week-grid { flex-direction: column; overflow-x: visible; }
-  .week-day-card { flex: 1 1 auto; width: 100%; min-height: 0; }
+  .modal { padding: 16px; }
+  .cal-day-cell { font-size: 11px; }
 }
 </style>
 </head>
@@ -811,10 +925,55 @@ body::after {
   </div>
 
   <div class="section">
-    <div class="section-title">This Week</div>
-    <div class="week-grid" id="weekGrid"></div>
+    <div class="section-title">Calendar</div>
+    <button type="button" class="cal-trigger" id="calTrigger">
+      <div class="cal-trigger-left">
+        <div class="cal-trigger-icon">📅</div>
+        <div class="cal-trigger-text">
+          <div class="cal-trigger-date" id="calTriggerDate">—</div>
+          <div class="cal-trigger-sub" id="calTriggerSub">— / — goals today</div>
+        </div>
+      </div>
+      <div class="cal-trigger-chevron">›</div>
+    </button>
   </div>
 
+</div>
+
+<div class="modal-bg" id="calModalBg">
+  <div class="modal cal-modal" id="calModal">
+    <div class="cal-modal-head">
+      <button type="button" class="cal-back" id="calBackBtn" style="display:none;">‹ Back</button>
+      <div class="cal-modal-title" id="calModalTitle">Calendar</div>
+      <button type="button" class="cal-close" id="calCloseBtn" aria-label="Close">×</button>
+    </div>
+
+    <div class="cal-month-view" id="calMonthView">
+      <div class="cal-month-nav">
+        <button type="button" class="cal-nav-btn" id="calPrevBtn" aria-label="Previous month">‹</button>
+        <div class="cal-month-label" id="calMonthLabel">—</div>
+        <button type="button" class="cal-nav-btn" id="calNextBtn" aria-label="Next month">›</button>
+      </div>
+      <div class="cal-weekday-row">
+        <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+    </div>
+
+    <div class="cal-day-view" id="calDayView" style="display:none;">
+      <div class="cal-day-header">
+        <div class="cal-day-date" id="calDayDate">—</div>
+        <div class="cal-day-count" id="calDayCount">0/0</div>
+      </div>
+      <ul class="cal-day-list" id="calDayList"></ul>
+      <div class="cal-day-empty" id="calDayEmpty" style="display:none;">No goals for this day</div>
+      <div class="cal-day-add-row" id="calDayAddRow">
+        <input type="text" class="cal-day-input" id="calDayInput" placeholder="Add a goal…" autocomplete="off">
+        <button type="button" class="cal-day-add-btn" id="calDayAddBtn">+ Add</button>
+      </div>
+      <div class="cal-day-readonly-note" id="calDayReadonlyNote" style="display:none;">Past day — read only</div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -837,7 +996,6 @@ body::after {
       window.dispatchEvent(new CustomEvent('goals-changed'));
     }
   }
-  function storeDelete(key) { try { localStorage.removeItem(key); } catch (e) {} }
   function storeListKeys(prefix) {
     const out = [];
     for (let i = 0; i < localStorage.length; i++) {
@@ -883,6 +1041,10 @@ body::after {
   function setGoals(key, list) { storeSet(key, list); }
 
   // ---------- rollover: pull undone older goals into today ----------
+  // Carries undone goals from past days into today, then keeps the past
+  // day's list around (instead of deleting it) so the calendar can show
+  // what was actually completed on that day. Each carried item is marked
+  // pushedForward so it doesn't get re-carried every subsequent day.
   function rollover() {
     const todayDateStr = getActiveDateString();
     const todayK = 'goals:' + todayDateStr;
@@ -893,13 +1055,16 @@ body::after {
       const dateStr = k.slice('goals:'.length);
       if (dateStr >= todayDateStr) return;
       const old = getGoals(k);
+      let changed = false;
       old.forEach(g => {
-        if (!g.done && g.text && !texts.has(g.text)) {
+        if (!g.done && g.text && !g.pushedForward && !texts.has(g.text)) {
           today.push({ text: g.text, done: false });
           texts.add(g.text);
+          g.pushedForward = true;
+          changed = true;
         }
       });
-      storeDelete(k);
+      if (changed) setGoals(k, old);
     });
     setGoals(todayK, today);
   }
@@ -1415,35 +1580,92 @@ body::after {
     loadTomorrow
   );
 
-  // ---------- Weekly Calendar ----------
-  const weekGrid = document.getElementById('weekGrid');
+  // ---------- Calendar (trigger + month/day modal) ----------
   const WEEKDAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-  function getWeekDates() {
-    const activeStr = getActiveDateString();
-    const parts = activeStr.split('-').map(Number);
-    const active = new Date(parts[0], parts[1] - 1, parts[2]);
-    const mondayOffset = (active.getDay() + 6) % 7; // days since Monday
-    const monday = new Date(active);
-    monday.setDate(monday.getDate() - mondayOffset);
-    const days = [];
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(monday);
-      d.setDate(monday.getDate() + i);
-      days.push(d);
-    }
-    return days;
+  const calModalBg   = document.getElementById('calModalBg');
+  const calModalTitle= document.getElementById('calModalTitle');
+  const calBackBtn   = document.getElementById('calBackBtn');
+  const calMonthView = document.getElementById('calMonthView');
+  const calDayView   = document.getElementById('calDayView');
+  const calMonthLabel= document.getElementById('calMonthLabel');
+  const calGrid      = document.getElementById('calGrid');
+  const calDayDate   = document.getElementById('calDayDate');
+  const calDayCount  = document.getElementById('calDayCount');
+  const calDayList   = document.getElementById('calDayList');
+  const calDayEmpty  = document.getElementById('calDayEmpty');
+  const calDayAddRow = document.getElementById('calDayAddRow');
+  const calDayInput  = document.getElementById('calDayInput');
+  const calDayAddBtn = document.getElementById('calDayAddBtn');
+  const calDayReadonlyNote = document.getElementById('calDayReadonlyNote');
+
+  let calViewMonth = null;   // Date — first of the month currently shown
+  let calSelectedDateStr = null;
+
+  function updateCalTrigger() {
+    const goals = getGoals(todayKey());
+    const total = goals.length;
+    const done = goals.filter(g => g.done).length;
+    document.getElementById('calTriggerDate').textContent = 'Today — ' + formatDate(getActiveDateString());
+    document.getElementById('calTriggerSub').textContent =
+      total ? (done + ' / ' + total + ' goals today') : 'No goals today — tap to plan';
   }
 
-  function buildWeekRow(goal, idx, key, reload) {
+  function buildMonthGrid(viewDate) {
+    const year = viewDate.getFullYear();
+    const month = viewDate.getMonth();
+    const firstOfMonth = new Date(year, month, 1);
+    const startOffset = (firstOfMonth.getDay() + 6) % 7; // Monday-start
+    const gridStart = new Date(firstOfMonth);
+    gridStart.setDate(gridStart.getDate() - startOffset);
+    const cells = [];
+    for (let i = 0; i < 42; i++) {
+      const d = new Date(gridStart);
+      d.setDate(gridStart.getDate() + i);
+      cells.push(d);
+    }
+    return cells;
+  }
+
+  function renderCalMonth() {
+    calMonthLabel.textContent = MONTH_NAMES[calViewMonth.getMonth()] + ' ' + calViewMonth.getFullYear();
+    const activeStr = getActiveDateString();
+    calGrid.innerHTML = '';
+    buildMonthGrid(calViewMonth).forEach(d => {
+      const dateStr = dateToKey(d);
+      const goals = getGoals('goals:' + dateStr);
+      const cell = document.createElement('button');
+      cell.type = 'button';
+      cell.className = 'cal-day-cell';
+      if (d.getMonth() !== calViewMonth.getMonth()) cell.classList.add('cal-day-outside');
+      if (dateStr === activeStr) cell.classList.add('cal-day-today');
+      if (goals.length > 0) {
+        const allDone = goals.every(g => g.done);
+        cell.classList.add(allDone ? 'cal-day-all-done' : 'cal-day-has-open');
+      }
+      const num = document.createElement('span');
+      num.textContent = d.getDate();
+      cell.appendChild(num);
+      if (goals.length > 0) {
+        const dot = document.createElement('span');
+        dot.className = 'cal-day-dot';
+        cell.appendChild(dot);
+      }
+      cell.addEventListener('click', () => showDayView(dateStr));
+      calGrid.appendChild(cell);
+    });
+  }
+
+  function buildCalDayRow(goal, idx, key, mode, reload) {
     const li = document.createElement('li');
-    li.className = 'week-row' + (goal.done ? ' week-row-done' : '');
+    li.className = 'cal-day-row' + (goal.done ? ' cal-day-row-done' : '');
 
     const cb = document.createElement('input');
     cb.type = 'checkbox';
-    cb.className = 'week-check';
+    cb.className = 'cal-day-check';
     cb.checked = !!goal.done;
+    cb.disabled = mode !== 'today';
     cb.addEventListener('change', () => {
       const list = getGoals(key);
       if (!list[idx]) return;
@@ -1452,119 +1674,120 @@ body::after {
       else delete list[idx].doneAt;
       setGoals(key, list);
       reload();
-      if (key === todayKey()) loadToday();
-      if (key === tomorrowKey()) loadTomorrow();
+      if (key === todayKey()) { loadToday(); updateCalTrigger(); }
     });
     li.appendChild(cb);
 
     const text = document.createElement('span');
-    text.className = 'week-text';
+    text.className = 'cal-day-text';
     text.textContent = goal.text;
     li.appendChild(text);
 
-    const del = document.createElement('button');
-    del.type = 'button';
-    del.className = 'week-del';
-    del.setAttribute('aria-label', 'Delete goal');
-    del.textContent = '×';
-    del.addEventListener('click', () => {
-      const list = getGoals(key);
-      list.splice(idx, 1);
-      setGoals(key, list);
-      reload();
-      if (key === todayKey()) loadToday();
-      if (key === tomorrowKey()) loadTomorrow();
-    });
-    li.appendChild(del);
+    if (mode !== 'past') {
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'cal-day-del';
+      del.setAttribute('aria-label', 'Delete goal');
+      del.textContent = '×';
+      del.addEventListener('click', () => {
+        const list = getGoals(key);
+        list.splice(idx, 1);
+        setGoals(key, list);
+        reload();
+        if (key === todayKey()) { loadToday(); updateCalTrigger(); }
+        if (key === tomorrowKey()) loadTomorrow();
+      });
+      li.appendChild(del);
+    }
 
     return li;
   }
 
-  function buildWeekDayCard(date) {
-    const dateStr = dateToKey(date);
+  function renderCalDay() {
+    const dateStr = calSelectedDateStr;
     const key = 'goals:' + dateStr;
     const activeStr = getActiveDateString();
-    const isToday = dateStr === activeStr;
-    const isPast = dateStr < activeStr;
+    const mode = dateStr < activeStr ? 'past' : (dateStr === activeStr ? 'today' : 'future');
 
-    const card = document.createElement('div');
-    card.className = 'week-day-card' +
-      (isToday ? ' week-day-today' : '') +
-      (isPast ? ' week-day-past' : '');
+    const parts = dateStr.split('-').map(Number);
+    const d = new Date(parts[0], parts[1] - 1, parts[2]);
+    calDayDate.textContent = WEEKDAY_NAMES[d.getDay()] + ', ' + MONTH_NAMES[d.getMonth()] + ' ' + d.getDate();
 
-    const head = document.createElement('div');
-    head.className = 'week-day-head';
-    const nameWrap = document.createElement('div');
-    const name = document.createElement('div');
-    name.className = 'week-day-name';
-    name.textContent = WEEKDAY_NAMES[date.getDay()] + (isToday ? ' · Today' : '');
-    const num = document.createElement('div');
-    num.className = 'week-day-num';
-    num.textContent = MONTH_NAMES[date.getMonth()] + ' ' + date.getDate();
-    nameWrap.appendChild(name);
-    nameWrap.appendChild(num);
-    const count = document.createElement('div');
-    count.className = 'week-day-count';
-    head.appendChild(nameWrap);
-    head.appendChild(count);
-    card.appendChild(head);
+    const goals = getGoals(key);
+    calDayCount.textContent = goals.filter(g => g.done).length + '/' + goals.length;
 
-    const list = document.createElement('ul');
-    list.className = 'week-list';
-    card.appendChild(list);
+    calDayList.innerHTML = '';
+    calDayEmpty.style.display = goals.length === 0 ? 'block' : 'none';
+    goals.forEach((g, idx) => calDayList.appendChild(buildCalDayRow(g, idx, key, mode, renderCalDay)));
 
-    function reload() {
-      const goals = getGoals(key);
-      count.textContent = goals.filter(g => g.done).length + '/' + goals.length;
-      list.innerHTML = '';
-      if (goals.length === 0) {
-        const empty = document.createElement('div');
-        empty.className = 'week-empty';
-        empty.textContent = 'No goals';
-        list.appendChild(empty);
-      } else {
-        goals.forEach((g, idx) => list.appendChild(buildWeekRow(g, idx, key, reload)));
-      }
-    }
-
-    const addRow = document.createElement('div');
-    addRow.className = 'week-add-row';
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.className = 'week-add-input';
-    input.placeholder = 'Add goal…';
-    input.autocomplete = 'off';
-    const addBtn = document.createElement('button');
-    addBtn.type = 'button';
-    addBtn.className = 'week-add-btn';
-    addBtn.textContent = '+';
-    function add() {
-      const text = input.value.trim();
-      if (!text) return;
-      const list_ = getGoals(key);
-      list_.push({ text, done: false });
-      setGoals(key, list_);
-      input.value = '';
-      reload();
-      if (key === todayKey()) loadToday();
-      if (key === tomorrowKey()) loadTomorrow();
-    }
-    addBtn.addEventListener('click', add);
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); add(); }
-    });
-    addRow.appendChild(input);
-    addRow.appendChild(addBtn);
-    card.appendChild(addRow);
-
-    reload();
-    return card;
+    calDayAddRow.style.display = mode === 'past' ? 'none' : 'flex';
+    calDayReadonlyNote.style.display = mode === 'past' ? 'block' : 'none';
+    calDayInput.value = '';
   }
 
-  function renderWeek() {
-    weekGrid.innerHTML = '';
-    getWeekDates().forEach(d => weekGrid.appendChild(buildWeekDayCard(d)));
+  function calDayAdd() {
+    const dateStr = calSelectedDateStr;
+    const activeStr = getActiveDateString();
+    if (dateStr < activeStr) return;
+    const text = calDayInput.value.trim();
+    if (!text) return;
+    const key = 'goals:' + dateStr;
+    const list = getGoals(key);
+    list.push({ text, done: false });
+    setGoals(key, list);
+    renderCalDay();
+    if (key === todayKey()) { loadToday(); updateCalTrigger(); }
+    if (key === tomorrowKey()) loadTomorrow();
   }
+  calDayAddBtn.addEventListener('click', calDayAdd);
+  calDayInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); calDayAdd(); }
+  });
+
+  function showMonthView() {
+    calSelectedDateStr = null;
+    calModalTitle.textContent = 'Calendar';
+    calBackBtn.style.display = 'none';
+    calDayView.style.display = 'none';
+    calMonthView.style.display = 'block';
+    renderCalMonth();
+  }
+
+  function showDayView(dateStr) {
+    calSelectedDateStr = dateStr;
+    calModalTitle.textContent = 'Day';
+    calBackBtn.style.display = 'inline-block';
+    calMonthView.style.display = 'none';
+    calDayView.style.display = 'block';
+    renderCalDay();
+  }
+
+  function openCalendar(initialDateStr) {
+    calViewMonth = initialDateStr
+      ? new Date(Number(initialDateStr.slice(0,4)), Number(initialDateStr.slice(5,7)) - 1, 1)
+      : new Date();
+    calModalBg.classList.add('show');
+    if (initialDateStr) showDayView(initialDateStr);
+    else showMonthView();
+  }
+
+  function closeCalendar() {
+    calModalBg.classList.remove('show');
+    loadToday(); loadTomorrow(); renderStreak(); updateCalTrigger();
+  }
+
+  document.getElementById('calTrigger').addEventListener('click', () => openCalendar(getActiveDateString()));
+  document.getElementById('calCloseBtn').addEventListener('click', closeCalendar);
+  calModalBg.addEventListener('click', (e) => { if (e.target === calModalBg) closeCalendar(); });
+  calBackBtn.addEventListener('click', showMonthView);
+  document.getElementById('calPrevBtn').addEventListener('click', () => {
+    calViewMonth = new Date(calViewMonth.getFullYear(), calViewMonth.getMonth() - 1, 1);
+    renderCalMonth();
+  });
+  document.getElementById('calNextBtn').addEventListener('click', () => {
+    calViewMonth = new Date(calViewMonth.getFullYear(), calViewMonth.getMonth() + 1, 1);
+    renderCalMonth();
+  });
 
   // ---------- Boot ----------
   rollover();
@@ -1572,14 +1795,17 @@ body::after {
   loadToday();
   loadTomorrow();
   renderStreak();
-  renderWeek();
+  updateCalTrigger();
   updateDayRing();
   setInterval(updateDayRing, 60 * 1000);
   startTicker();
 
   // Re-render when storage changes from another tab (or our bridged parent).
   window.addEventListener('storage', () => {
-    loadToday(); loadTomorrow(); renderStreak(); renderWeek();
+    loadToday(); loadTomorrow(); renderStreak(); updateCalTrigger();
+    if (calModalBg.classList.contains('show')) {
+      if (calSelectedDateStr) renderCalDay(); else renderCalMonth();
+    }
   });
 })();
 </script>
