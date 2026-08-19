@@ -1497,6 +1497,7 @@ body::after {
       if (cb.checked) list[idx].doneAt = Date.now();
       else delete list[idx].doneAt;
       setGoals(key, list);
+      if (cb.checked) removeTodoIfCompleted(list[idx]);
       reload();
     });
     li.appendChild(cb);
@@ -1788,6 +1789,7 @@ body::after {
       if (cb.checked) list[idx].doneAt = Date.now();
       else delete list[idx].doneAt;
       setGoals(key, list);
+      if (cb.checked) removeTodoIfCompleted(list[idx]);
       reload();
       if (key === todayKey()) { loadToday(); updateCalTrigger(); }
     });
@@ -1945,10 +1947,22 @@ body::after {
 
   function addTodoToGoals(todo, key) {
     const list = getGoals(key);
-    list.push({ text: todo.text, done: false });
+    list.push({ text: todo.text, done: false, fromTodoId: todo.id });
     setGoals(key, list);
     if (key === todayKey()) { loadToday(); updateCalTrigger(); }
     if (key === tomorrowKey()) loadTomorrow();
+  }
+
+  // When a goal that was promoted from the general to-do list gets
+  // checked off, remove the original task from that list too.
+  function removeTodoIfCompleted(goal) {
+    if (!goal || !goal.fromTodoId) return;
+    const list = getTodos();
+    const next = list.filter(t => t.id !== goal.fromTodoId);
+    if (next.length !== list.length) {
+      setTodos(next);
+      renderTodos();
+    }
   }
 
   function closeAllTodoMenus() {
