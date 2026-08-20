@@ -11,6 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="Health">
 <title>Water Tracker</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/@zxing/browser@latest/umd/zxing-browser.min.js"></script>
 <script src="sync.js" defer></script>
 <script src="topbar.js" defer></script>
 <style>
@@ -223,6 +224,132 @@ main {
 }
 .macro-pct-preview.warn { color: var(--warning, #F2C063); }
 
+.macro-scan-btn {
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid rgba(125, 211, 252, 0.28);
+  border-radius: 10px;
+  background: rgba(125, 211, 252, 0.08);
+  color: #7DD3FC;
+  font-family: inherit;
+  font-size: 12.5px; font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.macro-scan-btn:hover { background: rgba(125, 211, 252, 0.14); border-color: rgba(125, 211, 252, 0.4); }
+
+/* ----- Modal shell (shared by the barcode scanner) ----- */
+.modal-bg {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(6px);
+  z-index: 200;
+  align-items: center; justify-content: center;
+  padding: 20px;
+}
+.modal-bg.show { display: flex; }
+.modal {
+  width: 100%; max-width: 460px;
+  max-height: 88vh;
+  background: #0F0F11;
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 18px;
+  padding: 18px;
+  overflow-y: auto;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+}
+
+.scan-modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px;
+}
+.scan-modal-title { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+.scan-close {
+  border: 0; background: transparent;
+  color: var(--text-tertiary);
+  font-size: 22px; line-height: 1;
+  cursor: pointer; padding: 2px 6px;
+  transition: color 0.15s;
+}
+.scan-close:hover { color: var(--text-primary); }
+
+.scan-camera-wrap {
+  position: relative;
+  width: 100%; aspect-ratio: 3 / 4;
+  background: #000;
+  border-radius: 14px;
+  overflow: hidden;
+}
+.scan-video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.scan-frame {
+  position: absolute; inset: 18% 10%;
+  border: 2px solid rgba(125, 211, 252, 0.85);
+  border-radius: 12px;
+  box-shadow: 0 0 0 999px rgba(0,0,0,0.35);
+  pointer-events: none;
+}
+.scan-status {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  padding: 10px 12px;
+  background: linear-gradient(0deg, rgba(0,0,0,0.75), transparent);
+  color: var(--text-primary);
+  font-size: 12px; font-weight: 600;
+  text-align: center;
+}
+
+.scan-result { padding-top: 4px; }
+.scan-result-name {
+  font-size: 16px; font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+.scan-result-ref {
+  font-family: var(--font-mono);
+  font-size: 11px; color: var(--text-tertiary);
+  margin-bottom: 14px;
+}
+.scan-amount-row {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 12px;
+}
+.scan-amount-row .macro-input-num { width: 90px; }
+.scan-amount-unit { font-size: 12px; color: var(--text-tertiary); }
+.scan-result-preview {
+  font-family: var(--font-mono);
+  font-size: 13px; font-weight: 700;
+  color: var(--text-primary);
+  background: rgba(255,255,255,0.04);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+}
+.scan-result-actions { display: flex; gap: 8px; }
+.scan-result-actions .macro-add-btn { flex: 1; }
+.scan-again-btn {
+  flex: 1;
+  padding: 9px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: inherit; font-size: 13px; font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.scan-again-btn:hover { color: var(--text-primary); border-color: rgba(255,255,255,0.28); }
+
+.scan-error {
+  font-size: 13px;
+  color: var(--danger, #FF6B6B);
+  background: rgba(255,107,107,0.08);
+  border: 1px solid rgba(255,107,107,0.24);
+  border-radius: 10px;
+  padding: 12px;
+  margin-top: 12px;
+}
+
 .water-iframe {
   display: block;
   width: 100%;
@@ -291,6 +418,8 @@ main {
       <ul class="macro-list" id="macroList"></ul>
       <div class="macro-empty" id="macroEmpty">No food logged yet today</div>
 
+      <button type="button" id="macroScanBtn" class="macro-scan-btn">📷 Scan barcode</button>
+
       <div class="macro-add-row">
         <input type="text" id="macroName" class="macro-input macro-input-name" placeholder="Food (optional)" autocomplete="off">
         <input type="number" id="macroProtein" class="macro-input macro-input-num" placeholder="P g" min="0" step="1" inputmode="decimal">
@@ -320,6 +449,37 @@ main {
 
   <div class="attribution">// editable template · all data stays in your browser</div>
 </main>
+
+<div class="modal-bg" id="scanModalBg">
+  <div class="modal scan-modal" id="scanModal">
+    <div class="scan-modal-head">
+      <div class="scan-modal-title">Scan Barcode</div>
+      <button type="button" class="scan-close" id="scanCloseBtn" aria-label="Close">×</button>
+    </div>
+
+    <div class="scan-camera-wrap" id="scanCameraWrap">
+      <video id="scanVideo" class="scan-video" playsinline muted autoplay></video>
+      <div class="scan-frame"></div>
+      <div class="scan-status" id="scanStatus">Point your camera at a barcode</div>
+    </div>
+
+    <div class="scan-result" id="scanResult" style="display:none;">
+      <div class="scan-result-name" id="scanResultName">—</div>
+      <div class="scan-result-ref" id="scanResultRef">per 100g/ml — kcal · —P · —C · —F</div>
+      <div class="scan-amount-row">
+        <input type="number" id="scanAmount" class="macro-input macro-input-num" placeholder="Amount" min="0" step="1" value="100" inputmode="decimal">
+        <span class="scan-amount-unit">grams or ml consumed</span>
+      </div>
+      <div class="scan-result-preview" id="scanResultPreview">— kcal · —P · —C · —F</div>
+      <div class="scan-result-actions">
+        <button type="button" class="macro-add-btn" id="scanAddBtn">+ Add to log</button>
+        <button type="button" class="scan-again-btn" id="scanAgainBtn">Scan again</button>
+      </div>
+    </div>
+
+    <div class="scan-error" id="scanError" style="display:none;"></div>
+  </div>
+</div>
 
 <script>
 (function () {
@@ -474,6 +634,162 @@ main {
     renderMacros();
   }
 
+  // ---------- Barcode scanner (Open Food Facts lookup + portion scaling) ----------
+  // Nutrition values come back from Open Food Facts per 100g/100ml, so
+  // scanning alone isn't enough to log an accurate entry — the app scales
+  // protein/carbs/fat/kcal by (amount consumed / 100) once you enter how
+  // much you actually had. That scaling is exact proportional math, not
+  // an LLM call: there's nothing probabilistic about "half of 250g is
+  // 125g," and doing it that way needs no API key and works instantly.
+  let scanControls = null;
+  let scanProduct = null;
+
+  function stopScanCamera() {
+    if (scanControls) {
+      try { scanControls.stop(); } catch (e) {}
+      scanControls = null;
+    }
+  }
+
+  function showScanError(msg) {
+    const errEl = document.getElementById('scanError');
+    const statusEl = document.getElementById('scanStatus');
+    if (statusEl) statusEl.textContent = 'Scan failed';
+    if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
+  }
+
+  function resetScanUI() {
+    const resultEl = document.getElementById('scanResult');
+    const errEl = document.getElementById('scanError');
+    const cameraWrap = document.getElementById('scanCameraWrap');
+    const statusEl = document.getElementById('scanStatus');
+    if (resultEl) resultEl.style.display = 'none';
+    if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+    if (cameraWrap) cameraWrap.style.display = 'block';
+    if (statusEl) statusEl.textContent = 'Point your camera at a barcode';
+    scanProduct = null;
+  }
+
+  async function startScanCamera() {
+    stopScanCamera();
+    const videoEl = document.getElementById('scanVideo');
+    if (!videoEl || typeof ZXingBrowser === 'undefined') {
+      showScanError('Barcode scanner failed to load — check your connection and try again.');
+      return;
+    }
+    try {
+      const reader = new ZXingBrowser.BrowserMultiFormatReader();
+      scanControls = await reader.decodeFromConstraints(
+        { video: { facingMode: 'environment' } },
+        videoEl,
+        (result, err, controls) => {
+          if (result) {
+            controls.stop();
+            scanControls = null;
+            onBarcodeDetected(result.getText());
+          }
+        }
+      );
+    } catch (e) {
+      showScanError('Could not access the camera — check camera permission for this site.');
+    }
+  }
+
+  async function onBarcodeDetected(code) {
+    const statusEl = document.getElementById('scanStatus');
+    if (statusEl) statusEl.textContent = 'Looking up ' + code + '…';
+    try {
+      const res = await fetch('https://world.openfoodfacts.org/api/v2/product/' + encodeURIComponent(code) + '.json');
+      const data = await res.json();
+      const product = data && data.product;
+      const n = product && product.nutriments;
+      if (!product || !n || (n.proteins_100g == null && n.carbohydrates_100g == null && n.fat_100g == null)) {
+        showScanError('No nutrition info found for that barcode (' + code + ') — try adding it manually.');
+        return;
+      }
+      const protein100 = Number(n.proteins_100g) || 0;
+      const carbs100 = Number(n.carbohydrates_100g) || 0;
+      const fat100 = Number(n.fat_100g) || 0;
+      scanProduct = {
+        name: product.product_name || product.generic_name || ('Item ' + code),
+        protein100: protein100,
+        carbs100: carbs100,
+        fat100: fat100,
+        cals100: n['energy-kcal_100g'] != null ? Number(n['energy-kcal_100g']) : calcCalories(protein100, carbs100, fat100)
+      };
+      showScanResult();
+    } catch (e) {
+      showScanError('Lookup failed — check your connection and try again.');
+    }
+  }
+
+  function showScanResult() {
+    if (!scanProduct) return;
+    const cameraWrap = document.getElementById('scanCameraWrap');
+    const resultEl = document.getElementById('scanResult');
+    const nameEl = document.getElementById('scanResultName');
+    const refEl = document.getElementById('scanResultRef');
+    if (cameraWrap) cameraWrap.style.display = 'none';
+    if (resultEl) resultEl.style.display = 'block';
+    if (nameEl) nameEl.textContent = scanProduct.name;
+    if (refEl) {
+      refEl.textContent = 'per 100g/ml — ' + Math.round(scanProduct.cals100) + ' kcal · ' +
+        Math.round(scanProduct.protein100) + 'g P · ' + Math.round(scanProduct.carbs100) + 'g C · ' + Math.round(scanProduct.fat100) + 'g F';
+    }
+    const amountEl = document.getElementById('scanAmount');
+    if (amountEl) amountEl.value = 100;
+    updateScanPreview();
+  }
+
+  function updateScanPreview() {
+    const previewEl = document.getElementById('scanResultPreview');
+    const amountEl = document.getElementById('scanAmount');
+    if (!previewEl || !amountEl || !scanProduct) return;
+    const amount = parseFloat(amountEl.value) || 0;
+    const factor = amount / 100;
+    const scaled = {
+      protein: scanProduct.protein100 * factor,
+      carbs: scanProduct.carbs100 * factor,
+      fat: scanProduct.fat100 * factor,
+      cals: scanProduct.cals100 * factor
+    };
+    previewEl.textContent = Math.round(scaled.cals) + ' kcal · ' + Math.round(scaled.protein) + 'g P · ' + Math.round(scaled.carbs) + 'g C · ' + Math.round(scaled.fat) + 'g F';
+  }
+
+  function addScannedEntry() {
+    if (!scanProduct) return;
+    const amountEl = document.getElementById('scanAmount');
+    const amount = parseFloat(amountEl && amountEl.value) || 0;
+    if (amount <= 0) return;
+    const factor = amount / 100;
+    const list = getEntries();
+    list.push({
+      id: 'm' + Date.now() + '_' + Math.floor(Math.random() * 999),
+      name: scanProduct.name,
+      protein: scanProduct.protein100 * factor,
+      carbs: scanProduct.carbs100 * factor,
+      fat: scanProduct.fat100 * factor,
+      ts: Date.now()
+    });
+    setEntries(list);
+    renderMacros();
+    closeScanModal();
+  }
+
+  function openScanModal() {
+    const bg = document.getElementById('scanModalBg');
+    if (!bg) return;
+    resetScanUI();
+    bg.classList.add('show');
+    startScanCamera();
+  }
+
+  function closeScanModal() {
+    const bg = document.getElementById('scanModalBg');
+    stopScanCamera();
+    if (bg) bg.classList.remove('show');
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     const addBtn = document.getElementById('macroAddBtn');
     if (addBtn) addBtn.addEventListener('click', addMacroEntry);
@@ -503,6 +819,19 @@ main {
         renderMacros();
       });
     }
+
+    const scanBtn = document.getElementById('macroScanBtn');
+    if (scanBtn) scanBtn.addEventListener('click', openScanModal);
+    const scanCloseBtn = document.getElementById('scanCloseBtn');
+    if (scanCloseBtn) scanCloseBtn.addEventListener('click', closeScanModal);
+    const scanModalBg = document.getElementById('scanModalBg');
+    if (scanModalBg) scanModalBg.addEventListener('click', (e) => { if (e.target === scanModalBg) closeScanModal(); });
+    const scanAgainBtn = document.getElementById('scanAgainBtn');
+    if (scanAgainBtn) scanAgainBtn.addEventListener('click', () => { resetScanUI(); startScanCamera(); });
+    const scanAmountEl = document.getElementById('scanAmount');
+    if (scanAmountEl) scanAmountEl.addEventListener('input', updateScanPreview);
+    const scanAddBtn = document.getElementById('scanAddBtn');
+    if (scanAddBtn) scanAddBtn.addEventListener('click', addScannedEntry);
 
     window.addEventListener('storage', renderMacros);
     renderMacros();
