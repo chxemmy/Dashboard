@@ -214,6 +214,14 @@ main {
   flex-basis: 100%;
   font-size: 11px; color: var(--text-tertiary);
 }
+.macro-pct-preview {
+  flex-basis: 100%;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+.macro-pct-preview.warn { color: var(--warning, #F2C063); }
 
 .water-iframe {
   display: block;
@@ -295,10 +303,11 @@ main {
       <div class="macro-targets-row" id="macroTargetsRow">
         <span class="macro-targets-label">Daily calorie intake</span>
         <input type="number" id="macroTargetCalories" class="macro-input macro-input-num macro-input-cals" placeholder="kcal" min="0" step="10" inputmode="decimal">
-        <span class="macro-targets-label">Macro targets (grams)</span>
-        <input type="number" id="macroTargetProtein" class="macro-input macro-input-num" placeholder="P g" min="0" step="1" inputmode="decimal">
-        <input type="number" id="macroTargetCarbs" class="macro-input macro-input-num" placeholder="C g" min="0" step="1" inputmode="decimal">
-        <input type="number" id="macroTargetFat" class="macro-input macro-input-num" placeholder="F g" min="0" step="1" inputmode="decimal">
+        <span class="macro-targets-label">Macro split — % of calories</span>
+        <input type="number" id="macroTargetProteinPct" class="macro-input macro-input-num" placeholder="P %" min="0" max="100" step="1" inputmode="decimal">
+        <input type="number" id="macroTargetCarbsPct" class="macro-input macro-input-num" placeholder="C %" min="0" max="100" step="1" inputmode="decimal">
+        <input type="number" id="macroTargetFatPct" class="macro-input macro-input-num" placeholder="F %" min="0" max="100" step="1" inputmode="decimal">
+        <span class="macro-pct-preview" id="macroPctPreview">100% · 0g P · 0g C · 0g F</span>
         <button type="button" id="macroTargetsSaveBtn" class="macro-add-btn">Save</button>
       </div>
     </div>
@@ -316,7 +325,19 @@ main {
 (function () {
   'use strict';
   const MACRO_TARGETS_KEY = 'macros:targets';
-  const DEFAULT_TARGETS = { calories: 2000, protein: 150, carbs: 200, fat: 65 };
+  const DEFAULT_TARGETS = { calories: 2000, proteinPct: 30, carbsPct: 40, fatPct: 30 };
+
+  // 4 kcal/g for protein and carbs, 9 kcal/g for fat.
+  function gramsFromPct(calories, pct, kcalPerGram) {
+    return (Number(calories) || 0) * (Number(pct) || 0) / 100 / kcalPerGram;
+  }
+  function targetGramsFor(targets, calories) {
+    return {
+      protein: gramsFromPct(calories, targets.proteinPct, 4),
+      carbs: gramsFromPct(calories, targets.carbsPct, 4),
+      fat: gramsFromPct(calories, targets.fatPct, 9)
+    };
+  }
 
   function pad2(n) { return String(n).padStart(2, '0'); }
   function todayKey() {
@@ -353,6 +374,7 @@ main {
     }, { protein: 0, carbs: 0, fat: 0 });
     const totalCals = calcCalories(totals.protein, totals.carbs, totals.fat);
     const targetCals = Number(targets.calories) || DEFAULT_TARGETS.calories;
+    const targetGrams = targetGramsFor(targets, targetCals);
 
     const calsNumEl = document.getElementById('macroCalsNum');
     if (calsNumEl) {
@@ -361,7 +383,7 @@ main {
 
     function setBar(key, label) {
       const cur = Math.round(totals[key]);
-      const tgt = Math.max(1, Math.round(targets[key]));
+      const tgt = Math.max(1, Math.round(targetGrams[key]));
       const numsEl = document.getElementById('macro' + label + 'Nums');
       const fillEl = document.getElementById('macro' + label + 'Fill');
       if (numsEl) numsEl.textContent = cur + ' / ' + tgt + ' g';
@@ -402,13 +424,34 @@ main {
     }
 
     const tCals = document.getElementById('macroTargetCalories');
-    const tP = document.getElementById('macroTargetProtein');
-    const tC = document.getElementById('macroTargetCarbs');
-    const tF = document.getElementById('macroTargetFat');
+    const tP = document.getElementById('macroTargetProteinPct');
+    const tC = document.getElementById('macroTargetCarbsPct');
+    const tF = document.getElementById('macroTargetFatPct');
     if (tCals && document.activeElement !== tCals) tCals.value = targetCals;
-    if (tP && document.activeElement !== tP) tP.value = targets.protein;
-    if (tC && document.activeElement !== tC) tC.value = targets.carbs;
-    if (tF && document.activeElement !== tF) tF.value = targets.fat;
+    if (tP && document.activeElement !== tP) tP.value = targets.proteinPct;
+    if (tC && document.activeElement !== tC) tC.value = targets.carbsPct;
+    if (tF && document.activeElement !== tF) tF.value = targets.fatPct;
+    updateMacroPctPreview();
+  }
+
+  // Live preview of what the %/calorie split works out to in grams,
+  // while the user is still editing (before Save is pressed).
+  function updateMacroPctPreview() {
+    const previewEl = document.getElementById('macroPctPreview');
+    if (!previewEl) return;
+    const calsEl = document.getElementById('macroTargetCalories');
+    const pEl = document.getElementById('macroTargetProteinPct');
+    const cEl = document.getElementById('macroTargetCarbsPct');
+    const fEl = document.getElementById('macroTargetFatPct');
+    if (!calsEl || !pEl || !cEl || !fEl) return;
+    const cals = parseFloat(calsEl.value) || 0;
+    const pPct = parseFloat(pEl.value) || 0;
+    const cPct = parseFloat(cEl.value) || 0;
+    const fPct = parseFloat(fEl.value) || 0;
+    const total = pPct + cPct + fPct;
+    const grams = targetGramsFor({ proteinPct: pPct, carbsPct: cPct, fatPct: fPct }, cals);
+    previewEl.textContent = Math.round(total) + '% · ' + Math.round(grams.protein) + 'g P · ' + Math.round(grams.carbs) + 'g C · ' + Math.round(grams.fat) + 'g F';
+    previewEl.classList.toggle('warn', Math.round(total) !== 100);
   }
 
   function addMacroEntry() {
@@ -444,14 +487,18 @@ main {
     if (targetsToggle && targetsRow) {
       targetsToggle.addEventListener('click', () => targetsRow.classList.toggle('show'));
     }
+    ['macroTargetCalories', 'macroTargetProteinPct', 'macroTargetCarbsPct', 'macroTargetFatPct'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('input', updateMacroPctPreview);
+    });
     const targetsSaveBtn = document.getElementById('macroTargetsSaveBtn');
     if (targetsSaveBtn) {
       targetsSaveBtn.addEventListener('click', () => {
         const cals = parseFloat(document.getElementById('macroTargetCalories').value) || DEFAULT_TARGETS.calories;
-        const p = parseFloat(document.getElementById('macroTargetProtein').value) || DEFAULT_TARGETS.protein;
-        const c = parseFloat(document.getElementById('macroTargetCarbs').value) || DEFAULT_TARGETS.carbs;
-        const f = parseFloat(document.getElementById('macroTargetFat').value) || DEFAULT_TARGETS.fat;
-        setTargets({ calories: cals, protein: p, carbs: c, fat: f });
+        const p = parseFloat(document.getElementById('macroTargetProteinPct').value) || DEFAULT_TARGETS.proteinPct;
+        const c = parseFloat(document.getElementById('macroTargetCarbsPct').value) || DEFAULT_TARGETS.carbsPct;
+        const f = parseFloat(document.getElementById('macroTargetFatPct').value) || DEFAULT_TARGETS.fatPct;
+        setTargets({ calories: cals, proteinPct: p, carbsPct: c, fatPct: f });
         if (targetsRow) targetsRow.classList.remove('show');
         renderMacros();
       });
