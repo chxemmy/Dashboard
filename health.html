@@ -81,6 +81,139 @@ main {
 }
 .section-title::before { content: '≡'; font-size: 14px; opacity: 0.5; }
 
+.macro-card {
+  background: var(--bg-card);
+  border-radius: 16px;
+  padding: 22px 22px 18px;
+  backdrop-filter: blur(24px) saturate(1.2);
+  -webkit-backdrop-filter: blur(24px) saturate(1.2);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+  margin-bottom: 40px;
+}
+.macro-cals { text-align: center; margin-bottom: 20px; }
+.macro-cals-num {
+  font-size: 34px; font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.macro-cals-target { font-size: 16px; color: var(--text-tertiary); font-weight: 600; }
+.macro-cals-label {
+  font-family: var(--font-mono);
+  font-size: 10.5px; font-weight: 700;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-top: 4px;
+}
+
+.macro-bars { display: flex; flex-direction: column; gap: 14px; margin-bottom: 18px; }
+.macro-bar-head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: 12px; margin-bottom: 6px;
+}
+.macro-bar-name {
+  font-weight: 600; color: var(--text-primary);
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.macro-bar-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.macro-bar-nums {
+  font-family: var(--font-mono); font-size: 11px;
+  color: var(--text-tertiary); font-variant-numeric: tabular-nums;
+}
+.macro-bar-track {
+  height: 8px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.macro-bar-fill { height: 100%; border-radius: 999px; transition: width 0.4s ease; }
+
+.macro-protein .macro-bar-dot, .macro-protein .macro-bar-fill { background: #7DD3FC; }
+.macro-carbs   .macro-bar-dot, .macro-carbs   .macro-bar-fill { background: var(--warning, #F2C063); }
+.macro-fat     .macro-bar-dot, .macro-fat     .macro-bar-fill { background: #C084FC; }
+
+.macro-list { list-style: none; margin: 0 0 4px; padding: 0; }
+.macro-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 4px;
+  border-bottom: 1px solid var(--border-soft);
+  font-size: 13px;
+}
+.macro-row:last-child { border-bottom: none; }
+.macro-row-name { flex: 1; min-width: 0; color: var(--text-primary); }
+.macro-row-macros {
+  font-family: var(--font-mono); font-size: 10.5px;
+  color: var(--text-tertiary); white-space: nowrap;
+}
+.macro-row-del {
+  border: 0; background: transparent;
+  color: var(--text-tertiary);
+  font-size: 16px; cursor: pointer;
+  opacity: 0.6; padding: 0 2px;
+  transition: opacity 0.15s, color 0.15s;
+}
+.macro-row-del:hover { color: #FF6B6B; opacity: 1; }
+.macro-empty {
+  font-size: 12px; font-style: italic;
+  color: var(--text-tertiary);
+  padding: 10px 0; text-align: center;
+}
+
+.macro-add-row {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin-top: 14px; padding-top: 14px;
+  border-top: 1px solid var(--border-soft);
+}
+.macro-input {
+  padding: 9px 11px;
+  border-radius: 10px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-family: inherit; font-size: 16px;
+  outline: none;
+  transition: border-color 0.18s, background 0.18s;
+}
+.macro-input::placeholder { color: var(--text-tertiary); }
+.macro-input:focus { border-color: rgba(255,255,255,0.40); background: var(--bg-input-focus); }
+.macro-input-name { flex: 1.4; min-width: 110px; }
+.macro-input-num { width: 68px; }
+.macro-add-btn {
+  padding: 9px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.85);
+  background: linear-gradient(180deg, #FFFFFF 0%, #E8E5DD 100%);
+  color: #0A0A0B;
+  font-weight: 700; font-size: 13px;
+  cursor: pointer; font-family: inherit;
+  transition: transform 0.12s, background 0.18s;
+}
+.macro-add-btn:hover { background: linear-gradient(180deg, #FFFFFF 0%, #F2F0EA 100%); transform: translateY(-1px); }
+.macro-add-btn:active { transform: translateY(0); }
+
+.macro-targets-toggle {
+  width: 100%; margin-top: 10px;
+  padding: 8px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-tertiary);
+  font-family: inherit;
+  font-size: 10.5px; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.macro-targets-toggle:hover { color: var(--text-primary); border-color: rgba(255,255,255,0.22); }
+.macro-targets-row {
+  display: none; flex-wrap: wrap; gap: 6px;
+  margin-top: 10px;
+}
+.macro-targets-row.show { display: flex; }
+.macro-targets-label {
+  flex-basis: 100%;
+  font-size: 11px; color: var(--text-tertiary);
+}
+
 .water-iframe {
   display: block;
   width: 100%;
@@ -114,6 +247,60 @@ main {
 <body>
 
 <main>
+  <section id="macros">
+    <div class="section-title">Macros</div>
+    <div class="macro-card">
+      <div class="macro-cals">
+        <div class="macro-cals-num" id="macroCalsNum">0 <span class="macro-cals-target">/ 0 kcal</span></div>
+        <div class="macro-cals-label">Today</div>
+      </div>
+
+      <div class="macro-bars">
+        <div class="macro-bar-row macro-protein">
+          <div class="macro-bar-head">
+            <span class="macro-bar-name"><span class="macro-bar-dot"></span>Protein</span>
+            <span class="macro-bar-nums" id="macroProteinNums">0 / 0 g</span>
+          </div>
+          <div class="macro-bar-track"><div class="macro-bar-fill" id="macroProteinFill" style="width:0%"></div></div>
+        </div>
+        <div class="macro-bar-row macro-carbs">
+          <div class="macro-bar-head">
+            <span class="macro-bar-name"><span class="macro-bar-dot"></span>Carbs</span>
+            <span class="macro-bar-nums" id="macroCarbsNums">0 / 0 g</span>
+          </div>
+          <div class="macro-bar-track"><div class="macro-bar-fill" id="macroCarbsFill" style="width:0%"></div></div>
+        </div>
+        <div class="macro-bar-row macro-fat">
+          <div class="macro-bar-head">
+            <span class="macro-bar-name"><span class="macro-bar-dot"></span>Fat</span>
+            <span class="macro-bar-nums" id="macroFatNums">0 / 0 g</span>
+          </div>
+          <div class="macro-bar-track"><div class="macro-bar-fill" id="macroFatFill" style="width:0%"></div></div>
+        </div>
+      </div>
+
+      <ul class="macro-list" id="macroList"></ul>
+      <div class="macro-empty" id="macroEmpty">No food logged yet today</div>
+
+      <div class="macro-add-row">
+        <input type="text" id="macroName" class="macro-input macro-input-name" placeholder="Food (optional)" autocomplete="off">
+        <input type="number" id="macroProtein" class="macro-input macro-input-num" placeholder="P g" min="0" step="1" inputmode="decimal">
+        <input type="number" id="macroCarbs" class="macro-input macro-input-num" placeholder="C g" min="0" step="1" inputmode="decimal">
+        <input type="number" id="macroFat" class="macro-input macro-input-num" placeholder="F g" min="0" step="1" inputmode="decimal">
+        <button type="button" id="macroAddBtn" class="macro-add-btn">+ Add</button>
+      </div>
+
+      <button type="button" id="macroTargetsToggle" class="macro-targets-toggle">Edit daily targets</button>
+      <div class="macro-targets-row" id="macroTargetsRow">
+        <span class="macro-targets-label">Daily target (grams) — calories are calculated from these</span>
+        <input type="number" id="macroTargetProtein" class="macro-input macro-input-num" placeholder="P g" min="0" step="1" inputmode="decimal">
+        <input type="number" id="macroTargetCarbs" class="macro-input macro-input-num" placeholder="C g" min="0" step="1" inputmode="decimal">
+        <input type="number" id="macroTargetFat" class="macro-input macro-input-num" placeholder="F g" min="0" step="1" inputmode="decimal">
+        <button type="button" id="macroTargetsSaveBtn" class="macro-add-btn">Save</button>
+      </div>
+    </div>
+  </section>
+
   <section id="water" class="water-embed">
     <div class="section-title">Water Tracker</div>
     <iframe src="po-water.html" class="water-iframe" loading="lazy" title="Water Tracker" scrolling="no"></iframe>
@@ -123,11 +310,159 @@ main {
 </main>
 
 <script>
+(function () {
+  'use strict';
+  const MACRO_TARGETS_KEY = 'macros:targets';
+  const DEFAULT_TARGETS = { protein: 150, carbs: 200, fat: 65 };
+
+  function pad2(n) { return String(n).padStart(2, '0'); }
+  function todayKey() {
+    const d = new Date();
+    return 'macros:' + d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+  }
+  function storeGet(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }
+  function storeSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+
+  function getTargets() {
+    const t = storeGet(MACRO_TARGETS_KEY);
+    return (t && typeof t === 'object') ? Object.assign({}, DEFAULT_TARGETS, t) : Object.assign({}, DEFAULT_TARGETS);
+  }
+  function setTargets(t) { storeSet(MACRO_TARGETS_KEY, t); }
+
+  function getEntries() {
+    const list = storeGet(todayKey());
+    return Array.isArray(list) ? list : [];
+  }
+  function setEntries(list) { storeSet(todayKey(), list); }
+
+  function calcCalories(p, c, f) {
+    return Math.round((Number(p) || 0) * 4 + (Number(c) || 0) * 4 + (Number(f) || 0) * 9);
+  }
+
+  function renderMacros() {
+    const entries = getEntries();
+    const targets = getTargets();
+    const totals = entries.reduce((acc, e) => {
+      acc.protein += Number(e.protein) || 0;
+      acc.carbs += Number(e.carbs) || 0;
+      acc.fat += Number(e.fat) || 0;
+      return acc;
+    }, { protein: 0, carbs: 0, fat: 0 });
+    const totalCals = calcCalories(totals.protein, totals.carbs, totals.fat);
+    const targetCals = calcCalories(targets.protein, targets.carbs, targets.fat);
+
+    const calsNumEl = document.getElementById('macroCalsNum');
+    if (calsNumEl) {
+      calsNumEl.innerHTML = Math.round(totalCals) + ' <span class="macro-cals-target">/ ' + Math.round(targetCals) + ' kcal</span>';
+    }
+
+    function setBar(key, label) {
+      const cur = Math.round(totals[key]);
+      const tgt = Math.max(1, Math.round(targets[key]));
+      const numsEl = document.getElementById('macro' + label + 'Nums');
+      const fillEl = document.getElementById('macro' + label + 'Fill');
+      if (numsEl) numsEl.textContent = cur + ' / ' + tgt + ' g';
+      if (fillEl) fillEl.style.width = Math.min(100, (cur / tgt) * 100) + '%';
+    }
+    setBar('protein', 'Protein');
+    setBar('carbs', 'Carbs');
+    setBar('fat', 'Fat');
+
+    const listEl = document.getElementById('macroList');
+    const emptyEl = document.getElementById('macroEmpty');
+    if (listEl && emptyEl) {
+      listEl.innerHTML = '';
+      emptyEl.style.display = entries.length === 0 ? 'block' : 'none';
+      entries.forEach((e, idx) => {
+        const li = document.createElement('li');
+        li.className = 'macro-row';
+        const name = document.createElement('span');
+        name.className = 'macro-row-name';
+        name.textContent = e.name || 'Food';
+        const macros = document.createElement('span');
+        macros.className = 'macro-row-macros';
+        macros.textContent = Math.round(e.protein || 0) + 'P · ' + Math.round(e.carbs || 0) + 'C · ' + Math.round(e.fat || 0) + 'F · ' + calcCalories(e.protein, e.carbs, e.fat) + ' kcal';
+        const del = document.createElement('button');
+        del.type = 'button';
+        del.className = 'macro-row-del';
+        del.setAttribute('aria-label', 'Delete entry');
+        del.textContent = '×';
+        del.addEventListener('click', () => {
+          const list = getEntries();
+          list.splice(idx, 1);
+          setEntries(list);
+          renderMacros();
+        });
+        li.appendChild(name); li.appendChild(macros); li.appendChild(del);
+        listEl.appendChild(li);
+      });
+    }
+
+    const tP = document.getElementById('macroTargetProtein');
+    const tC = document.getElementById('macroTargetCarbs');
+    const tF = document.getElementById('macroTargetFat');
+    if (tP && document.activeElement !== tP) tP.value = targets.protein;
+    if (tC && document.activeElement !== tC) tC.value = targets.carbs;
+    if (tF && document.activeElement !== tF) tF.value = targets.fat;
+  }
+
+  function addMacroEntry() {
+    const nameEl = document.getElementById('macroName');
+    const pEl = document.getElementById('macroProtein');
+    const cEl = document.getElementById('macroCarbs');
+    const fEl = document.getElementById('macroFat');
+    if (!nameEl || !pEl || !cEl || !fEl) return;
+    const p = parseFloat(pEl.value) || 0;
+    const c = parseFloat(cEl.value) || 0;
+    const f = parseFloat(fEl.value) || 0;
+    if (p <= 0 && c <= 0 && f <= 0) return;
+    const list = getEntries();
+    list.push({
+      id: 'm' + Date.now() + '_' + Math.floor(Math.random() * 999),
+      name: nameEl.value.trim(), protein: p, carbs: c, fat: f, ts: Date.now()
+    });
+    setEntries(list);
+    nameEl.value = ''; pEl.value = ''; cEl.value = ''; fEl.value = '';
+    renderMacros();
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const addBtn = document.getElementById('macroAddBtn');
+    if (addBtn) addBtn.addEventListener('click', addMacroEntry);
+    ['macroName', 'macroProtein', 'macroCarbs', 'macroFat'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addMacroEntry(); } });
+    });
+
+    const targetsToggle = document.getElementById('macroTargetsToggle');
+    const targetsRow = document.getElementById('macroTargetsRow');
+    if (targetsToggle && targetsRow) {
+      targetsToggle.addEventListener('click', () => targetsRow.classList.toggle('show'));
+    }
+    const targetsSaveBtn = document.getElementById('macroTargetsSaveBtn');
+    if (targetsSaveBtn) {
+      targetsSaveBtn.addEventListener('click', () => {
+        const p = parseFloat(document.getElementById('macroTargetProtein').value) || DEFAULT_TARGETS.protein;
+        const c = parseFloat(document.getElementById('macroTargetCarbs').value) || DEFAULT_TARGETS.carbs;
+        const f = parseFloat(document.getElementById('macroTargetFat').value) || DEFAULT_TARGETS.fat;
+        setTargets({ protein: p, carbs: c, fat: f });
+        if (targetsRow) targetsRow.classList.remove('show');
+        renderMacros();
+      });
+    }
+
+    window.addEventListener('storage', renderMacros);
+    renderMacros();
+  });
+})();
+</script>
+<script>
 document.addEventListener('DOMContentLoaded', function () {
   if (typeof initCloudSync !== 'function') return;
   initCloudSync({
     appKey: 'health',
-    syncedKeys: ['po_water_v1'],
+    syncedKeys: ['po_water_v1', 'macros:targets'],
+    syncedPrefixes: ['macros:'],
     onApplied: function () { window.dispatchEvent(new Event('storage')); }
   });
 });
