@@ -170,6 +170,9 @@ body.topbar-modal-open { overflow: hidden; touch-action: none; }
   <a href="health.html" class="bottombar-tab" data-page="health">
     <span class="bottombar-tab-icon">💊</span><span>Health</span>
   </a>
+  <a href="finance.html" class="bottombar-tab" data-page="finance">
+    <span class="bottombar-tab-icon">📊</span><span>Finance</span>
+  </a>
   <a href="gym.html" class="bottombar-tab" data-page="fitness">
     <span class="bottombar-tab-icon">💪</span><span>Fitness</span>
   </a>
@@ -186,6 +189,7 @@ body.topbar-modal-open { overflow: hidden; touch-action: none; }
   function currentPageKey() {
     const p = (window.location.pathname || '').toLowerCase();
     if (p.endsWith('health.html')) return 'health';
+    if (p.endsWith('finance.html')) return 'finance';
     if (p.endsWith('gym.html')) return 'fitness';
     return 'main';
   }
