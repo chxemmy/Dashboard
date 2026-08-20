@@ -472,6 +472,33 @@ main {
   color-scheme: dark;
 }
 
+.weight-section { margin-top: 40px; }
+.weight-card {
+  background: var(--bg-card);
+  border-radius: 16px;
+  padding: 22px;
+  backdrop-filter: blur(24px) saturate(1.2);
+  -webkit-backdrop-filter: blur(24px) saturate(1.2);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+}
+.weight-today-label {
+  font-family: var(--font-mono);
+  font-size: 11px; color: var(--text-tertiary);
+  margin-bottom: 12px;
+}
+.weight-input-row { display: flex; align-items: center; gap: 8px; }
+.weight-input {
+  flex: 1;
+  font-size: 20px; font-weight: 700;
+  text-align: center;
+}
+.weight-unit { font-size: 13px; color: var(--text-tertiary); font-weight: 600; }
+.weight-hint {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
 .attribution {
   text-align: center; margin-top: 28px;
   font-family: var(--font-mono);
@@ -591,6 +618,19 @@ main {
   <section id="water" class="water-embed">
     <div class="section-title">Water Tracker</div>
     <iframe src="po-water.html" class="water-iframe" loading="lazy" title="Water Tracker" scrolling="no"></iframe>
+  </section>
+
+  <section id="weight" class="weight-section">
+    <div class="section-title">Morning Weight Check</div>
+    <div class="weight-card">
+      <div class="weight-today-label" id="weightTodayLabel">—</div>
+      <div class="weight-input-row">
+        <input type="number" id="weightInput" class="macro-input weight-input" placeholder="0.0" step="0.1" min="0" inputmode="decimal">
+        <span class="weight-unit" id="weightUnit">kg</span>
+        <button type="button" id="weightSaveBtn" class="macro-add-btn">Save</button>
+      </div>
+      <div class="weight-hint" id="weightHint">No weigh-ins yet</div>
+    </div>
   </section>
 
   <div class="attribution">// editable template · all data stays in your browser</div>
@@ -1220,6 +1260,115 @@ document.addEventListener('DOMContentLoaded', function () {
     } catch (e) {}
   });
 });
+</script>
+<script>
+// Morning weight check-in. Reads/writes the SAME po_coach_weights key
+// the Fitness (gym.html) weight tracker already owns, so a quick
+// weigh-in here shows up in that chart too instead of starting a
+// second, disconnected weight history. Pushed to Supabase with a
+// read-merge-write against the 'po-coach' row (same pattern topbar.js
+// uses for water) so this never clobbers gym.html's other synced
+// fields in that same row.
+(function () {
+  'use strict';
+  const SUPABASE_URL = 'https://rpfkojucmtoawcmjkkpy.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_WHtajhHOoKXWb9Zc1Z6KQg_UzP4DOkx';
+  const WEIGHTS_KEY = 'po_coach_weights';
+  const COACH_KEY = 'po_coach_v1';
+
+  function storeGet(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }
+  function storeSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+
+  function dateKey(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function getWeights() {
+    const arr = storeGet(WEIGHTS_KEY);
+    return Array.isArray(arr) ? arr.slice().sort((a, b) => a.dateKey.localeCompare(b.dateKey)) : [];
+  }
+  function getUnits() {
+    const coach = storeGet(COACH_KEY);
+    return (coach && coach.units) || 'kg';
+  }
+  function formatDate(d) {
+    const wk = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getDay()];
+    const mo = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()];
+    return wk + ', ' + mo + ' ' + d.getDate();
+  }
+
+  async function pushWeightMergedToSupabase(weights) {
+    if (!window.supabase) return;
+    try {
+      const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      const { data } = await supa.from('app_state').select('data').eq('key', 'po-coach').maybeSingle();
+      const current = (data && data.data) || {};
+      const merged = Object.assign({}, current, { po_coach_weights: weights });
+      await supa.from('app_state').upsert(
+        { key: 'po-coach', data: merged, updated_at: new Date().toISOString() },
+        { onConflict: 'key' }
+      );
+    } catch (e) {}
+  }
+
+  function render() {
+    const labelEl = document.getElementById('weightTodayLabel');
+    const inputEl = document.getElementById('weightInput');
+    const unitEl = document.getElementById('weightUnit');
+    const hintEl = document.getElementById('weightHint');
+    if (!labelEl || !inputEl) return;
+
+    const now = new Date();
+    labelEl.textContent = formatDate(now);
+    const units = getUnits();
+    if (unitEl) unitEl.textContent = units;
+
+    const weights = getWeights();
+    const todayEntry = weights.find((e) => e.dateKey === dateKey(now));
+    if (document.activeElement !== inputEl) {
+      inputEl.value = todayEntry ? todayEntry.weight : '';
+    }
+    if (hintEl) {
+      if (todayEntry) {
+        hintEl.textContent = 'Logged today — tap Save to update it.';
+      } else if (weights.length > 0) {
+        const last = weights[weights.length - 1];
+        hintEl.textContent = 'Last logged: ' + last.weight + ' ' + units + ' on ' + last.dateKey;
+      } else {
+        hintEl.textContent = 'No weigh-ins yet — this feeds your Fitness weight tracker too.';
+      }
+    }
+  }
+
+  function saveWeight() {
+    const inputEl = document.getElementById('weightInput');
+    if (!inputEl) return;
+    const v = parseFloat(inputEl.value);
+    if (isNaN(v) || v <= 0) return;
+    const weights = getWeights();
+    const key = dateKey(new Date());
+    const existing = weights.find((e) => e.dateKey === key);
+    if (existing) existing.weight = v;
+    else weights.push({ dateKey: key, weight: v });
+    weights.sort((a, b) => a.dateKey.localeCompare(b.dateKey));
+    storeSet(WEIGHTS_KEY, weights);
+    render();
+    window.dispatchEvent(new Event('storage'));
+    pushWeightMergedToSupabase(weights);
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const saveBtn = document.getElementById('weightSaveBtn');
+    if (saveBtn) saveBtn.addEventListener('click', saveWeight);
+    const inputEl = document.getElementById('weightInput');
+    if (inputEl) {
+      inputEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); saveWeight(); }
+      });
+    }
+    window.addEventListener('storage', render);
+    render();
+  });
+})();
 </script>
 
 </body>
