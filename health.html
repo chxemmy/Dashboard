@@ -243,6 +243,12 @@ main {
   transition: background 0.15s, border-color 0.15s;
 }
 .macro-meal-scan-btn:hover { background: rgba(125, 211, 252, 0.14); border-color: rgba(125, 211, 252, 0.4); }
+.macro-meal-quickadd-btn {
+  border-color: var(--border-strong);
+  background: rgba(255,255,255,0.04);
+  color: var(--text-secondary);
+}
+.macro-meal-quickadd-btn:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.28); }
 
 .macro-add-row {
   display: flex; flex-wrap: wrap; gap: 6px;
@@ -373,6 +379,37 @@ main {
   font-size: 12px; font-weight: 600;
   text-align: center;
 }
+
+.scan-search-input { width: 100%; }
+.scan-search-results {
+  max-height: 340px;
+  overflow-y: auto;
+  margin-top: 10px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.scan-search-item {
+  display: flex; flex-direction: column; gap: 3px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: background 0.15s, border-color 0.15s;
+}
+.scan-search-item:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.14); }
+.scan-search-item-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.scan-search-item-meta {
+  font-family: var(--font-mono); font-size: 10.5px;
+  color: var(--text-tertiary);
+}
+.scan-search-loading, .scan-search-empty {
+  font-size: 12px; color: var(--text-tertiary);
+  padding: 14px 0; text-align: center;
+}
+.scan-search-empty { font-style: italic; }
 
 .scan-result { padding-top: 4px; }
 .scan-result-name {
@@ -572,6 +609,12 @@ main {
       <div class="scan-status" id="scanStatus">Point your camera at a barcode</div>
     </div>
 
+    <div class="scan-search-wrap" id="scanSearchWrap" style="display:none;">
+      <input type="text" id="scanSearchInput" class="macro-input scan-search-input" placeholder="Search for a food…" autocomplete="off">
+      <div class="scan-search-results" id="scanSearchResults"></div>
+      <div class="scan-search-empty" id="scanSearchEmpty" style="display:none;">No results — try a different search or scan a barcode instead.</div>
+    </div>
+
     <div class="scan-result" id="scanResult" style="display:none;">
       <div class="scan-result-name" id="scanResultName">—</div>
       <div class="scan-result-ref" id="scanResultRef">per 100g/ml — kcal · —P · —C · —F</div>
@@ -582,7 +625,7 @@ main {
       <div class="scan-result-preview" id="scanResultPreview">— kcal · —P · —C · —F</div>
       <div class="scan-result-actions">
         <button type="button" class="macro-add-btn" id="scanAddBtn">+ Add to log</button>
-        <button type="button" class="scan-again-btn" id="scanAgainBtn">Scan again</button>
+        <button type="button" class="scan-again-btn" id="scanAgainBtn">Try again</button>
       </div>
     </div>
 
@@ -772,10 +815,17 @@ main {
     const actions = document.createElement('div');
     actions.className = 'macro-meal-actions';
 
+    const searchBtn = document.createElement('button');
+    searchBtn.type = 'button';
+    searchBtn.className = 'macro-meal-add-btn';
+    searchBtn.textContent = '🔍 Search Food';
+
     const addToggleBtn = document.createElement('button');
     addToggleBtn.type = 'button';
-    addToggleBtn.className = 'macro-meal-add-btn';
-    addToggleBtn.textContent = '+ Add Food';
+    addToggleBtn.className = 'macro-meal-scan-btn macro-meal-quickadd-btn';
+    addToggleBtn.setAttribute('aria-label', 'Quick add macros for ' + meal);
+    addToggleBtn.title = 'Quick add (enter macros directly)';
+    addToggleBtn.textContent = '✏️';
 
     const scanBtn = document.createElement('button');
     scanBtn.type = 'button';
@@ -784,6 +834,7 @@ main {
     scanBtn.title = 'Scan a barcode';
     scanBtn.textContent = '📷';
 
+    actions.appendChild(searchBtn);
     actions.appendChild(addToggleBtn);
     actions.appendChild(scanBtn);
     host.appendChild(actions);
@@ -827,7 +878,8 @@ main {
         if (e.key === 'Enter') { e.preventDefault(); addMacroEntryForMeal(meal, nameEl, pEl, cEl, fEl); }
       });
     });
-    scanBtn.addEventListener('click', () => openScanModal(meal));
+    scanBtn.addEventListener('click', () => openScanModal(meal, 'camera'));
+    searchBtn.addEventListener('click', () => openScanModal(meal, 'search'));
   }
 
   // ---------- Barcode scanner (Open Food Facts lookup + portion scaling) ----------
@@ -840,6 +892,8 @@ main {
   let scanControls = null;
   let scanProduct = null;
   let scanTargetMeal = 'snacks';
+  let scanMode = 'camera'; // 'camera' | 'search'
+  let searchDebounceTimer = null;
 
   function stopScanCamera() {
     if (scanControls) {
@@ -859,10 +913,12 @@ main {
     const resultEl = document.getElementById('scanResult');
     const errEl = document.getElementById('scanError');
     const cameraWrap = document.getElementById('scanCameraWrap');
+    const searchWrap = document.getElementById('scanSearchWrap');
     const statusEl = document.getElementById('scanStatus');
     if (resultEl) resultEl.style.display = 'none';
     if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
-    if (cameraWrap) cameraWrap.style.display = 'block';
+    if (cameraWrap) cameraWrap.style.display = scanMode === 'camera' ? 'block' : 'none';
+    if (searchWrap) searchWrap.style.display = scanMode === 'search' ? 'block' : 'none';
     if (statusEl) statusEl.textContent = 'Point your camera at a barcode';
     scanProduct = null;
   }
@@ -923,10 +979,12 @@ main {
   function showScanResult() {
     if (!scanProduct) return;
     const cameraWrap = document.getElementById('scanCameraWrap');
+    const searchWrap = document.getElementById('scanSearchWrap');
     const resultEl = document.getElementById('scanResult');
     const nameEl = document.getElementById('scanResultName');
     const refEl = document.getElementById('scanResultRef');
     if (cameraWrap) cameraWrap.style.display = 'none';
+    if (searchWrap) searchWrap.style.display = 'none';
     if (resultEl) resultEl.style.display = 'block';
     if (nameEl) nameEl.textContent = scanProduct.name;
     if (refEl) {
@@ -936,6 +994,77 @@ main {
     const amountEl = document.getElementById('scanAmount');
     if (amountEl) amountEl.value = 100;
     updateScanPreview();
+  }
+
+  // ---------- Text search (Open Food Facts search API) ----------
+  function onSearchInput() {
+    clearTimeout(searchDebounceTimer);
+    const q = (document.getElementById('scanSearchInput').value || '').trim();
+    if (q.length < 2) {
+      const resultsEl = document.getElementById('scanSearchResults');
+      const emptyEl = document.getElementById('scanSearchEmpty');
+      if (resultsEl) resultsEl.innerHTML = '';
+      if (emptyEl) emptyEl.style.display = 'none';
+      return;
+    }
+    searchDebounceTimer = setTimeout(() => runFoodSearch(q), 400);
+  }
+
+  async function runFoodSearch(query) {
+    const resultsEl = document.getElementById('scanSearchResults');
+    const emptyEl = document.getElementById('scanSearchEmpty');
+    if (emptyEl) emptyEl.style.display = 'none';
+    if (resultsEl) resultsEl.innerHTML = '<div class="scan-search-loading">Searching…</div>';
+    try {
+      const url = 'https://world.openfoodfacts.org/cgi/search.pl?search_terms=' + encodeURIComponent(query) +
+        '&search_simple=1&action=process&json=1&page_size=20&fields=product_name,nutriments';
+      const res = await fetch(url);
+      const data = await res.json();
+      renderSearchResults((data && data.products) || []);
+    } catch (e) {
+      if (resultsEl) resultsEl.innerHTML = '';
+      if (emptyEl) { emptyEl.textContent = 'Search failed — check your connection.'; emptyEl.style.display = 'block'; }
+    }
+  }
+
+  function renderSearchResults(products) {
+    const resultsEl = document.getElementById('scanSearchResults');
+    const emptyEl = document.getElementById('scanSearchEmpty');
+    if (!resultsEl) return;
+    resultsEl.innerHTML = '';
+    const usable = products.filter((p) => p && p.product_name && p.nutriments &&
+      (p.nutriments.proteins_100g != null || p.nutriments.carbohydrates_100g != null || p.nutriments.fat_100g != null));
+    if (usable.length === 0) {
+      if (emptyEl) {
+        emptyEl.textContent = 'No results — try a different search or scan a barcode instead.';
+        emptyEl.style.display = 'block';
+      }
+      return;
+    }
+    if (emptyEl) emptyEl.style.display = 'none';
+    usable.forEach((p) => {
+      const n = p.nutriments;
+      const protein100 = Number(n.proteins_100g) || 0;
+      const carbs100 = Number(n.carbohydrates_100g) || 0;
+      const fat100 = Number(n.fat_100g) || 0;
+      const cals100 = n['energy-kcal_100g'] != null ? Number(n['energy-kcal_100g']) : calcCalories(protein100, carbs100, fat100);
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'scan-search-item';
+      const nameEl = document.createElement('span');
+      nameEl.className = 'scan-search-item-name';
+      nameEl.textContent = p.product_name;
+      const metaEl = document.createElement('span');
+      metaEl.className = 'scan-search-item-meta';
+      metaEl.textContent = Math.round(cals100) + ' kcal · ' + Math.round(protein100) + 'g P · ' + Math.round(carbs100) + 'g C · ' + Math.round(fat100) + 'g F (per 100g)';
+      item.appendChild(nameEl);
+      item.appendChild(metaEl);
+      item.addEventListener('click', () => {
+        scanProduct = { name: p.product_name, protein100: protein100, carbs100: carbs100, fat100: fat100, cals100: cals100 };
+        showScanResult();
+      });
+      resultsEl.appendChild(item);
+    });
   }
 
   function updateScanPreview() {
@@ -975,15 +1104,27 @@ main {
   }
 
   const MEAL_LABELS = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snacks: 'Snacks' };
-  function openScanModal(meal) {
+  function openScanModal(meal, mode) {
     const bg = document.getElementById('scanModalBg');
     if (!bg) return;
     scanTargetMeal = meal || 'snacks';
+    scanMode = mode === 'search' ? 'search' : 'camera';
     const titleEl = document.getElementById('scanModalTitle');
-    if (titleEl) titleEl.textContent = 'Scan Barcode — ' + (MEAL_LABELS[scanTargetMeal] || 'Snacks');
+    if (titleEl) {
+      titleEl.textContent = (scanMode === 'search' ? 'Search Food' : 'Scan Barcode') + ' — ' + (MEAL_LABELS[scanTargetMeal] || 'Snacks');
+    }
     resetScanUI();
     bg.classList.add('show');
-    startScanCamera();
+    if (scanMode === 'camera') {
+      startScanCamera();
+    } else {
+      const searchInput = document.getElementById('scanSearchInput');
+      if (searchInput) { searchInput.value = ''; setTimeout(() => searchInput.focus(), 50); }
+      const resultsEl = document.getElementById('scanSearchResults');
+      if (resultsEl) resultsEl.innerHTML = '';
+      const emptyEl = document.getElementById('scanSearchEmpty');
+      if (emptyEl) emptyEl.style.display = 'none';
+    }
   }
 
   function closeScanModal() {
@@ -1022,11 +1163,18 @@ main {
     const scanModalBg = document.getElementById('scanModalBg');
     if (scanModalBg) scanModalBg.addEventListener('click', (e) => { if (e.target === scanModalBg) closeScanModal(); });
     const scanAgainBtn = document.getElementById('scanAgainBtn');
-    if (scanAgainBtn) scanAgainBtn.addEventListener('click', () => { resetScanUI(); startScanCamera(); });
+    if (scanAgainBtn) {
+      scanAgainBtn.addEventListener('click', () => {
+        resetScanUI();
+        if (scanMode === 'camera') startScanCamera();
+      });
+    }
     const scanAmountEl = document.getElementById('scanAmount');
     if (scanAmountEl) scanAmountEl.addEventListener('input', updateScanPreview);
     const scanAddBtn = document.getElementById('scanAddBtn');
     if (scanAddBtn) scanAddBtn.addEventListener('click', addScannedEntry);
+    const scanSearchInputEl = document.getElementById('scanSearchInput');
+    if (scanSearchInputEl) scanSearchInputEl.addEventListener('input', onSearchInput);
 
     window.addEventListener('storage', renderMacros);
     renderMacros();
