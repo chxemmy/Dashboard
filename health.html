@@ -214,13 +214,47 @@ main {
   color: var(--text-quaternary);
   padding: 4px 4px 2px;
 }
-.macro-input-meal { flex: 1; min-width: 100px; cursor: pointer; }
+.macro-meal-controls { margin-top: 8px; }
+.macro-meal-actions { display: flex; gap: 6px; }
+.macro-meal-add-btn {
+  flex: 1;
+  padding: 8px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-tertiary);
+  font-family: inherit;
+  font-size: 11.5px; font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.macro-meal-add-btn:hover { color: var(--text-primary); border-color: rgba(255,255,255,0.28); }
+.macro-meal-scan-btn {
+  flex-shrink: 0;
+  width: 36px;
+  padding: 8px;
+  border: 1px solid rgba(125, 211, 252, 0.28);
+  border-radius: 9px;
+  background: rgba(125, 211, 252, 0.08);
+  color: #7DD3FC;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.macro-meal-scan-btn:hover { background: rgba(125, 211, 252, 0.14); border-color: rgba(125, 211, 252, 0.4); }
 
 .macro-add-row {
   display: flex; flex-wrap: wrap; gap: 6px;
   margin-top: 14px; padding-top: 14px;
   border-top: 1px solid var(--border-soft);
 }
+.macro-meal-add-row {
+  display: none;
+  margin-top: 8px; padding-top: 0;
+  border-top: none;
+}
+.macro-meal-add-row.show { display: flex; }
 .macro-input {
   padding: 9px 11px;
   border-radius: 10px;
@@ -280,22 +314,6 @@ main {
   margin-top: 2px;
 }
 .macro-pct-preview.warn { color: var(--warning, #F2C063); }
-
-.macro-scan-btn {
-  width: 100%;
-  margin-top: 10px;
-  padding: 10px;
-  border: 1px solid rgba(125, 211, 252, 0.28);
-  border-radius: 10px;
-  background: rgba(125, 211, 252, 0.08);
-  color: #7DD3FC;
-  font-family: inherit;
-  font-size: 12.5px; font-weight: 700;
-  letter-spacing: 0.02em;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
-}
-.macro-scan-btn:hover { background: rgba(125, 211, 252, 0.14); border-color: rgba(125, 211, 252, 0.4); }
 
 /* ----- Modal shell (shared by the barcode scanner) ----- */
 .modal-bg {
@@ -488,6 +506,7 @@ main {
           </div>
           <ul class="macro-list" id="macroList-breakfast"></ul>
           <div class="macro-meal-empty" id="macroMealEmpty-breakfast">No foods logged</div>
+          <div class="macro-meal-controls" id="macroMealControls-breakfast"></div>
         </div>
         <div class="macro-meal" data-meal="lunch">
           <div class="macro-meal-head">
@@ -496,6 +515,7 @@ main {
           </div>
           <ul class="macro-list" id="macroList-lunch"></ul>
           <div class="macro-meal-empty" id="macroMealEmpty-lunch">No foods logged</div>
+          <div class="macro-meal-controls" id="macroMealControls-lunch"></div>
         </div>
         <div class="macro-meal" data-meal="dinner">
           <div class="macro-meal-head">
@@ -504,6 +524,7 @@ main {
           </div>
           <ul class="macro-list" id="macroList-dinner"></ul>
           <div class="macro-meal-empty" id="macroMealEmpty-dinner">No foods logged</div>
+          <div class="macro-meal-controls" id="macroMealControls-dinner"></div>
         </div>
         <div class="macro-meal" data-meal="snacks">
           <div class="macro-meal-head">
@@ -512,23 +533,8 @@ main {
           </div>
           <ul class="macro-list" id="macroList-snacks"></ul>
           <div class="macro-meal-empty" id="macroMealEmpty-snacks">No foods logged</div>
+          <div class="macro-meal-controls" id="macroMealControls-snacks"></div>
         </div>
-      </div>
-
-      <button type="button" id="macroScanBtn" class="macro-scan-btn">📷 Scan barcode</button>
-
-      <div class="macro-add-row">
-        <input type="text" id="macroName" class="macro-input macro-input-name" placeholder="Food (optional)" autocomplete="off">
-        <select id="macroMeal" class="macro-input macro-input-meal">
-          <option value="breakfast">Breakfast</option>
-          <option value="lunch">Lunch</option>
-          <option value="dinner">Dinner</option>
-          <option value="snacks">Snacks</option>
-        </select>
-        <input type="number" id="macroProtein" class="macro-input macro-input-num" placeholder="P g" min="0" step="1" inputmode="decimal">
-        <input type="number" id="macroCarbs" class="macro-input macro-input-num" placeholder="C g" min="0" step="1" inputmode="decimal">
-        <input type="number" id="macroFat" class="macro-input macro-input-num" placeholder="F g" min="0" step="1" inputmode="decimal">
-        <button type="button" id="macroAddBtn" class="macro-add-btn">+ Add</button>
       </div>
 
       <button type="button" id="macroTargetsToggle" class="macro-targets-toggle">Edit daily targets</button>
@@ -556,7 +562,7 @@ main {
 <div class="modal-bg" id="scanModalBg">
   <div class="modal scan-modal" id="scanModal">
     <div class="scan-modal-head">
-      <div class="scan-modal-title">Scan Barcode</div>
+      <div class="scan-modal-title" id="scanModalTitle">Scan Barcode</div>
       <button type="button" class="scan-close" id="scanCloseBtn" aria-label="Close">×</button>
     </div>
 
@@ -572,14 +578,6 @@ main {
       <div class="scan-amount-row">
         <input type="number" id="scanAmount" class="macro-input macro-input-num" placeholder="Amount" min="0" step="1" value="100" inputmode="decimal">
         <span class="scan-amount-unit">grams or ml consumed</span>
-      </div>
-      <div class="scan-amount-row">
-        <select id="scanMeal" class="macro-input macro-input-meal">
-          <option value="breakfast">Breakfast</option>
-          <option value="lunch">Lunch</option>
-          <option value="dinner">Dinner</option>
-          <option value="snacks">Snacks</option>
-        </select>
       </div>
       <div class="scan-result-preview" id="scanResultPreview">— kcal · —P · —C · —F</div>
       <div class="scan-result-actions">
@@ -635,13 +633,6 @@ main {
   }
 
   const MEALS = ['breakfast', 'lunch', 'dinner', 'snacks'];
-  function defaultMealForNow() {
-    const h = new Date().getHours();
-    if (h < 11) return 'breakfast';
-    if (h < 15) return 'lunch';
-    if (h < 21) return 'dinner';
-    return 'snacks';
-  }
 
   function buildMacroRow(entry) {
     const li = document.createElement('li');
@@ -754,13 +745,7 @@ main {
     previewEl.classList.toggle('warn', Math.round(total) !== 100);
   }
 
-  function addMacroEntry() {
-    const nameEl = document.getElementById('macroName');
-    const mealEl = document.getElementById('macroMeal');
-    const pEl = document.getElementById('macroProtein');
-    const cEl = document.getElementById('macroCarbs');
-    const fEl = document.getElementById('macroFat');
-    if (!nameEl || !pEl || !cEl || !fEl) return;
+  function addMacroEntryForMeal(meal, nameEl, pEl, cEl, fEl) {
     const p = parseFloat(pEl.value) || 0;
     const c = parseFloat(cEl.value) || 0;
     const f = parseFloat(fEl.value) || 0;
@@ -769,11 +754,80 @@ main {
     list.push({
       id: 'm' + Date.now() + '_' + Math.floor(Math.random() * 999),
       name: nameEl.value.trim(), protein: p, carbs: c, fat: f,
-      meal: mealEl ? mealEl.value : 'snacks', ts: Date.now()
+      meal: meal, ts: Date.now()
     });
     setEntries(list);
     nameEl.value = ''; pEl.value = ''; cEl.value = ''; fEl.value = '';
     renderMacros();
+  }
+
+  // Builds the "+ Add Food" / camera-scan controls for one meal section
+  // and wires them up. Called once per meal at boot — MyFitnessPal-style,
+  // each meal in the diary gets its own add entry point instead of one
+  // shared form at the bottom of the whole card.
+  function buildMealAddControls(meal) {
+    const host = document.getElementById('macroMealControls-' + meal);
+    if (!host) return;
+
+    const actions = document.createElement('div');
+    actions.className = 'macro-meal-actions';
+
+    const addToggleBtn = document.createElement('button');
+    addToggleBtn.type = 'button';
+    addToggleBtn.className = 'macro-meal-add-btn';
+    addToggleBtn.textContent = '+ Add Food';
+
+    const scanBtn = document.createElement('button');
+    scanBtn.type = 'button';
+    scanBtn.className = 'macro-meal-scan-btn';
+    scanBtn.setAttribute('aria-label', 'Scan a barcode for ' + meal);
+    scanBtn.title = 'Scan a barcode';
+    scanBtn.textContent = '📷';
+
+    actions.appendChild(addToggleBtn);
+    actions.appendChild(scanBtn);
+    host.appendChild(actions);
+
+    const row = document.createElement('div');
+    row.className = 'macro-add-row macro-meal-add-row';
+
+    const nameEl = document.createElement('input');
+    nameEl.type = 'text';
+    nameEl.className = 'macro-input macro-input-name';
+    nameEl.placeholder = 'Food (optional)';
+    nameEl.autocomplete = 'off';
+
+    const pEl = document.createElement('input');
+    pEl.type = 'number'; pEl.className = 'macro-input macro-input-num';
+    pEl.placeholder = 'P g'; pEl.min = '0'; pEl.step = '1'; pEl.inputMode = 'decimal';
+
+    const cEl = document.createElement('input');
+    cEl.type = 'number'; cEl.className = 'macro-input macro-input-num';
+    cEl.placeholder = 'C g'; cEl.min = '0'; cEl.step = '1'; cEl.inputMode = 'decimal';
+
+    const fEl = document.createElement('input');
+    fEl.type = 'number'; fEl.className = 'macro-input macro-input-num';
+    fEl.placeholder = 'F g'; fEl.min = '0'; fEl.step = '1'; fEl.inputMode = 'decimal';
+
+    const saveBtn = document.createElement('button');
+    saveBtn.type = 'button';
+    saveBtn.className = 'macro-add-btn';
+    saveBtn.textContent = '+ Add';
+
+    [nameEl, pEl, cEl, fEl, saveBtn].forEach((el) => row.appendChild(el));
+    host.appendChild(row);
+
+    addToggleBtn.addEventListener('click', () => {
+      row.classList.toggle('show');
+      if (row.classList.contains('show')) nameEl.focus();
+    });
+    saveBtn.addEventListener('click', () => addMacroEntryForMeal(meal, nameEl, pEl, cEl, fEl));
+    [nameEl, pEl, cEl, fEl].forEach((el) => {
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); addMacroEntryForMeal(meal, nameEl, pEl, cEl, fEl); }
+      });
+    });
+    scanBtn.addEventListener('click', () => openScanModal(meal));
   }
 
   // ---------- Barcode scanner (Open Food Facts lookup + portion scaling) ----------
@@ -785,6 +839,7 @@ main {
   // 125g," and doing it that way needs no API key and works instantly.
   let scanControls = null;
   let scanProduct = null;
+  let scanTargetMeal = 'snacks';
 
   function stopScanCamera() {
     if (scanControls) {
@@ -880,8 +935,6 @@ main {
     }
     const amountEl = document.getElementById('scanAmount');
     if (amountEl) amountEl.value = 100;
-    const mealEl = document.getElementById('scanMeal');
-    if (mealEl) mealEl.value = defaultMealForNow();
     updateScanPreview();
   }
 
@@ -903,7 +956,6 @@ main {
   function addScannedEntry() {
     if (!scanProduct) return;
     const amountEl = document.getElementById('scanAmount');
-    const mealEl = document.getElementById('scanMeal');
     const amount = parseFloat(amountEl && amountEl.value) || 0;
     if (amount <= 0) return;
     const factor = amount / 100;
@@ -914,7 +966,7 @@ main {
       protein: scanProduct.protein100 * factor,
       carbs: scanProduct.carbs100 * factor,
       fat: scanProduct.fat100 * factor,
-      meal: mealEl ? mealEl.value : 'snacks',
+      meal: scanTargetMeal,
       ts: Date.now()
     });
     setEntries(list);
@@ -922,9 +974,13 @@ main {
     closeScanModal();
   }
 
-  function openScanModal() {
+  const MEAL_LABELS = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snacks: 'Snacks' };
+  function openScanModal(meal) {
     const bg = document.getElementById('scanModalBg');
     if (!bg) return;
+    scanTargetMeal = meal || 'snacks';
+    const titleEl = document.getElementById('scanModalTitle');
+    if (titleEl) titleEl.textContent = 'Scan Barcode — ' + (MEAL_LABELS[scanTargetMeal] || 'Snacks');
     resetScanUI();
     bg.classList.add('show');
     startScanCamera();
@@ -937,14 +993,7 @@ main {
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    const macroMealEl = document.getElementById('macroMeal');
-    if (macroMealEl) macroMealEl.value = defaultMealForNow();
-    const addBtn = document.getElementById('macroAddBtn');
-    if (addBtn) addBtn.addEventListener('click', addMacroEntry);
-    ['macroName', 'macroProtein', 'macroCarbs', 'macroFat'].forEach((id) => {
-      const el = document.getElementById(id);
-      if (el) el.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addMacroEntry(); } });
-    });
+    MEALS.forEach(buildMealAddControls);
 
     const targetsToggle = document.getElementById('macroTargetsToggle');
     const targetsRow = document.getElementById('macroTargetsRow');
@@ -968,8 +1017,6 @@ main {
       });
     }
 
-    const scanBtn = document.getElementById('macroScanBtn');
-    if (scanBtn) scanBtn.addEventListener('click', openScanModal);
     const scanCloseBtn = document.getElementById('scanCloseBtn');
     if (scanCloseBtn) scanCloseBtn.addEventListener('click', closeScanModal);
     const scanModalBg = document.getElementById('scanModalBg');
