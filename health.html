@@ -177,6 +177,7 @@ main {
 .macro-input:focus { border-color: rgba(255,255,255,0.40); background: var(--bg-input-focus); }
 .macro-input-name { flex: 1.4; min-width: 110px; }
 .macro-input-num { width: 68px; }
+.macro-input-cals { width: 90px; }
 .macro-add-btn {
   padding: 9px 16px;
   border-radius: 10px;
@@ -292,7 +293,9 @@ main {
 
       <button type="button" id="macroTargetsToggle" class="macro-targets-toggle">Edit daily targets</button>
       <div class="macro-targets-row" id="macroTargetsRow">
-        <span class="macro-targets-label">Daily target (grams) — calories are calculated from these</span>
+        <span class="macro-targets-label">Daily calorie intake</span>
+        <input type="number" id="macroTargetCalories" class="macro-input macro-input-num macro-input-cals" placeholder="kcal" min="0" step="10" inputmode="decimal">
+        <span class="macro-targets-label">Macro targets (grams)</span>
         <input type="number" id="macroTargetProtein" class="macro-input macro-input-num" placeholder="P g" min="0" step="1" inputmode="decimal">
         <input type="number" id="macroTargetCarbs" class="macro-input macro-input-num" placeholder="C g" min="0" step="1" inputmode="decimal">
         <input type="number" id="macroTargetFat" class="macro-input macro-input-num" placeholder="F g" min="0" step="1" inputmode="decimal">
@@ -313,7 +316,7 @@ main {
 (function () {
   'use strict';
   const MACRO_TARGETS_KEY = 'macros:targets';
-  const DEFAULT_TARGETS = { protein: 150, carbs: 200, fat: 65 };
+  const DEFAULT_TARGETS = { calories: 2000, protein: 150, carbs: 200, fat: 65 };
 
   function pad2(n) { return String(n).padStart(2, '0'); }
   function todayKey() {
@@ -349,7 +352,7 @@ main {
       return acc;
     }, { protein: 0, carbs: 0, fat: 0 });
     const totalCals = calcCalories(totals.protein, totals.carbs, totals.fat);
-    const targetCals = calcCalories(targets.protein, targets.carbs, targets.fat);
+    const targetCals = Number(targets.calories) || DEFAULT_TARGETS.calories;
 
     const calsNumEl = document.getElementById('macroCalsNum');
     if (calsNumEl) {
@@ -398,9 +401,11 @@ main {
       });
     }
 
+    const tCals = document.getElementById('macroTargetCalories');
     const tP = document.getElementById('macroTargetProtein');
     const tC = document.getElementById('macroTargetCarbs');
     const tF = document.getElementById('macroTargetFat');
+    if (tCals && document.activeElement !== tCals) tCals.value = targetCals;
     if (tP && document.activeElement !== tP) tP.value = targets.protein;
     if (tC && document.activeElement !== tC) tC.value = targets.carbs;
     if (tF && document.activeElement !== tF) tF.value = targets.fat;
@@ -442,10 +447,11 @@ main {
     const targetsSaveBtn = document.getElementById('macroTargetsSaveBtn');
     if (targetsSaveBtn) {
       targetsSaveBtn.addEventListener('click', () => {
+        const cals = parseFloat(document.getElementById('macroTargetCalories').value) || DEFAULT_TARGETS.calories;
         const p = parseFloat(document.getElementById('macroTargetProtein').value) || DEFAULT_TARGETS.protein;
         const c = parseFloat(document.getElementById('macroTargetCarbs').value) || DEFAULT_TARGETS.carbs;
         const f = parseFloat(document.getElementById('macroTargetFat').value) || DEFAULT_TARGETS.fat;
-        setTargets({ protein: p, carbs: c, fat: f });
+        setTargets({ calories: cals, protein: p, carbs: c, fat: f });
         if (targetsRow) targetsRow.classList.remove('show');
         renderMacros();
       });
